@@ -1,0 +1,2535 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LMS PLTS - Energi Baru Terbarukan</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome untuk Ikon LMS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fafaf9;
+            color: #1c1917;
+        }
+        /* Animasi transisi halus untuk accordion pertemuan */
+        .accordion-content {
+            transition: all 0.25s ease-in-out;
+        }
+        /* Custom scrollbar minimalis nuansa hangat */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f5f5f4;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d6d3d1;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #f59e0b;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Container Utama Aplikasi -->
+    <div id="app" class="flex-1 flex flex-col"></div>
+
+    <!-- Container Toast Notification (Pengganti alert) -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+    <!-- Container Modal Dinamis -->
+    <div id="modal-root"></div>
+
+    <script>
+        /**
+         * ============================================================================
+         * 1. STATE & DATA AWAL APLIKASI LMS PLTS (SESUAI PEMETAAN TPACK)
+         * ============================================================================
+         */
+        const USERS_DB = [
+            {
+                username: 'siswa1',
+                password: '123',
+                name: 'Ni Putu Ayu Lestari',
+                role: 'siswa',
+                idNumber: '2415061012',
+                classOrDept: 'Kelas 39 · Semester 5'
+            },
+            {
+                username: 'siswa2',
+                password: '123',
+                name: 'I Gede Bagus Pratama',
+                role: 'siswa',
+                idNumber: '2415061018',
+                classOrDept: 'Kelas 39 · Semester 5'
+            },
+            {
+                username: 'guru1',
+                password: '123',
+                name: 'I Kadek Satriantara',
+                role: 'guru',
+                idNumber: 'NIM/NIP. 2415061003',
+                classOrDept: 'Pengampu Mata Pelajaran · Kelas 39'
+            }
+        ];
+
+        // Konfigurasi Google Spreadsheet (Apps Script Web App URL)
+        let sheetConfig = {
+            webhookUrl: '',
+            sheetName: 'Rekap_LMS_PLTS_Kelas39',
+            lastSyncTime: 'Belum disinkronkan ke cloud'
+        };
+
+        // Informasi Mata Pelajaran (Sesuai Tabel Pemetaan TPACK)
+        let courseInfo = {
+            code: 'EBT-KLS39-SEM5',
+            title: 'Energi Baru Terbarukan: Pembangkit Listrik Tenaga Surya (PLTS) Atap Skala Domestik (Rumahan)',
+            metaInfo: 'Kelas 39 · Semester 5 · Pembuat: I Kadek Satriantara (2415061003)',
+            description: 'Selamat datang di LMS PLTS. Pembelajaran dirancang berbasis kerangka TPACK (Technological Pedagogical Content Knowledge) yang mencakup tahapan Pendahuluan, Materi, Aktivitas, Project, hingga Evaluasi & Forum Diskusi secara runtut dan mudah dipahami.'
+        };
+
+        // Data 5 Pertemuan Berdasarkan Pemetaan TPACK
+        let meetings = [
+            {
+                id: 'm1',
+                title: 'Pertemuan 1: Definisi & Pengertian PLTS',
+                tpack: {
+                    knowledgeType: 'Konsep',
+                    technology: 'Canva',
+                    pedagogy: 'Ceramah, Diskusi'
+                },
+                expanded: true,
+                pendahuluan: {
+                    desc: 'Pemetaan TPACK — Tipe Konten: Konsep | Teknologi: Canva | Pedagogi: Ceramah & Diskusi. Memahami definisi, kategori sistem energi, serta perbedaan mendasar antara energi konvensional dan energi surya.',
+                    items: [
+                        {
+                            id: 'p1-1',
+                            title: 'Capaian Pembelajaran & Peta Konsep PLTS Rumahan',
+                            subtitle: 'Tipe Pengetahuan: Konsep · Estimasi 5 menit',
+                            content: 'CAPAIAN PEMBELAJARAN PERTEMUAN 1:\n1. Memahami definisi Pembangkit Listrik Tenaga Surya (PLTS) atap skala domestik.\n2. Mengklasifikasikan kategori sistem energi (On-Grid, Off-Grid, dan Hybrid).\n3. Membandingkan karakteristik energi konvensional (fosil) dengan energi surya yang bersih dan terbarukan.'
+                        }
+                    ]
+                },
+                materi: {
+                    desc: 'Silakan pelajari bahan ajar visual yang disusun menggunakan Canva berikut ini untuk memahami konsep dasar PLTS secara bertahap.',
+                    items: [
+                        {
+                            id: 'mat1-1',
+                            title: 'Slide Visual Canva: Definisi, Kategori Sistem & Energi Surya vs Konvensional',
+                            fileType: 'CANVA / PDF',
+                            fileSize: '1.2 MB',
+                            uploadedAt: 'Pertemuan 1 · Teknologi: Canva',
+                            content: 'RINGKASAN MATERI PERTEMUAN 1 (KONSEP):\n\n1. Definisi PLTS:\nPembangkit Listrik Tenaga Surya (PLTS) adalah sistem pembangkit listrik yang mengubah radiasi sinar matahari menjadi energi listrik menggunakan sel fotovoltaik (PV).\n\n2. Kategori Sistem PLTS Atap Domestik:\n• Sistem On-Grid: Terhubung langsung dengan jaringan listrik PLN tanpa baterai.\n• Sistem Off-Grid: Berdiri sendiri menggunakan penyimpanan baterai untuk daerah terpencil atau cadangan penuh.\n• Sistem Hybrid: Kombinasi jaringan PLN dan baterai cadangan.\n\n3. Energi Konvensional vs Energi Surya:\n• Energi Konvensional: Berasal dari bahan bakar fosil (batu bara/minyak), terbatas, dan menghasilkan emisi karbon.\n• Energi Surya: Sumber energi terbarukan melimpah, ramah lingkungan, minim perawatan, dan cocok untuk atap rumah tangga.'
+                        }
+                    ]
+                },
+                aktivitas: {
+                    desc: 'Kerjakan aktivitas refleksi konsep berikut (Pedagogi: Diskusi & Analisis). Hasil otomatis tercatat ke rekap Google Spreadsheet.',
+                    items: [
+                        {
+                            id: 'akt1-1',
+                            title: 'Aktivitas 1.1: Analisis Perbandingan Energi Konvensional vs Energi Surya',
+                            prompt: 'Jelaskan perbedaan mendasar antara pembangkit energi konvensional dengan PLTS atap skala domestik ditinjau dari sumber energi, dampak lingkungan, dan efisiensi jangka panjang!',
+                            deadline: 'Batas waktu: Minggu ini'
+                        }
+                    ]
+                },
+                project: {
+                    desc: 'Tugas berbasis karya digital menggunakan media Canva.',
+                    items: [
+                        {
+                            id: 'prj1-1',
+                            title: 'Mini Project 1: Infografis Konsep PLTS Atap Rumahan (Canva)',
+                            brief: 'Buatlah 1 lembar infografis minimalis menggunakan Canva yang menjelaskan pengertian PLTS serta perbedaan sistem On-Grid, Off-Grid, dan Hybrid untuk rumah tangga. Kumpulkan tautan desain Canva Anda.',
+                            deadline: 'Tenggat: Akhir Pekan Ini'
+                        }
+                    ]
+                },
+                evaluasi: {
+                    desc: 'Kuis evaluasi pemahaman konsep dasar PLTS. Nilai otomatis dihitung dan disimpan ke Google Spreadsheet.',
+                    items: [
+                        {
+                            id: 'ev1-1',
+                            title: 'Kuis Evaluasi 1: Konsep & Kategori Sistem PLTS',
+                            duration: '10 Menit',
+                            passingScore: 75,
+                            questions: [
+                                {
+                                    q: 'Perbedaan paling mendasar antara energi surya dengan energi konvensional (fosil) adalah...',
+                                    options: [
+                                        'Energi surya menghasilkan emisi gas rumah kaca lebih besar',
+                                        'Energi surya bersifat terbarukan, bersih, dan memanfaatkan radiasi matahari',
+                                        'Energi konvensional tidak memerlukan bahan bakar sama sekali',
+                                        'Energi surya hanya dapat digunakan pada malam hari'
+                                    ],
+                                    answerIndex: 1
+                                },
+                                {
+                                    q: 'Sistem PLTS atap rumahan yang terhubung langsung ke jaringan listrik PLN tanpa menggunakan baterai disebut sistem...',
+                                    options: ['Off-Grid', 'Stand-Alone DC', 'On-Grid (Grid-Tied)', 'Diesel Hybrid'],
+                                    answerIndex: 2
+                                }
+                            ]
+                        }
+                    ]
+                },
+                diskusi: {
+                    desc: 'Forum diskusi kelas (Pedagogi: Ceramah & Diskusi) untuk mendalami penerapan PLTS di lingkungan sekitar.',
+                    items: [
+                        {
+                            id: 'dis1-1',
+                            title: 'Forum Diskusi 1: Potensi PLTS Atap Skala Domestik di Indonesia',
+                            prompt: 'Menurut Anda, keuntungan apa yang paling dirasakan pemilik rumah ketika beralih menggunakan PLTS atap skala domestik dibandingkan bergantung sepenuhnya pada listrik konvensional?',
+                            posts: [
+                                {
+                                    id: 'post-1',
+                                    author: 'I Kadek Satriantara',
+                                    role: 'guru',
+                                    time: 'Hari ini, 08:30',
+                                    text: 'Silakan diskusikan keunggulan energi surya di wilayah tropis seperti Indonesia serta tantangan awal pemasangannya pada skala rumah tangga.'
+                                }
+                            ]
+                        }
+                    ]
+                }
+            },
+            {
+                id: 'm2',
+                title: 'Pertemuan 2: Komponen Utama Sistem PLTS (Panel Surya, SCC, Inverter, Baterai)',
+                tpack: {
+                    knowledgeType: 'Fakta',
+                    technology: 'YouTube / Video Animasi',
+                    pedagogy: 'Ceramah, Demonstrasi visual'
+                },
+                expanded: false,
+                pendahuluan: {
+                    desc: 'Pemetaan TPACK — Tipe Konten: Fakta | Teknologi: YouTube / Video Animasi | Pedagogi: Ceramah & Demonstrasi Visual. Mengingat kembali nama, bentuk fisik, dan simbol diagram blok perangkat keras PLTS.',
+                    items: [
+                        {
+                            id: 'p2-1',
+                            title: 'Pengantar Perangkat Keras & Simbol Diagram Blok PLTS',
+                            subtitle: 'Tipe Pengetahuan: Fakta · Demonstrasi Visual',
+                            content: 'FOKUS PEMBELAJARAN PERTEMUAN 2:\nMengenali nama, bentuk fisik komponen utama, serta simbol standar diagram blok pada sistem PLTS: Panel Surya (PV), Solar Charge Controller (SCC), Baterai, dan Inverter.'
+                        }
+                    ]
+                },
+                materi: {
+                    desc: 'Simak video animasi demonstrasi visual dan modul ringkasan komponen perangkat keras PLTS berikut.',
+                    items: [
+                        {
+                            id: 'mat2-1',
+                            title: 'Video Animasi & Modul: 4 Komponen Utama & Simbol Diagram Blok PLTS',
+                            fileType: 'VIDEO / PDF',
+                            fileSize: '2.4 MB',
+                            uploadedAt: 'Teknologi: YouTube / Video Animasi',
+                            content: 'KOMPONEN UTAMA SISTEM PLTS (FAKTA & DIAGRAM BLOK):\n\n1. Panel Surya (Solar Panel / PV Module):\n• Bentuk fisik: Lembaran sel silikon berlapis kaca temper dan bingkai aluminium.\n• Fungsi: Mengubah cahaya matahari menjadi listrik arus searah (DC).\n\n2. Solar Charge Controller (SCC):\n• Bentuk fisik: Modul pengatur dengan terminal input PV, baterai, dan beban DC (tipe PWM atau MPPT).\n• Fungsi: Mengatur arus pengisian dari panel surya ke baterai agar tidak overcharge.\n\n3. Baterai (Battery Bank):\n• Bentuk fisik: Aki deep-cycle (VRLA/Gel/LiFePO4).\n• Fungsi: Menyimpan energi listrik DC untuk digunakan saat malam hari atau cuaca mendung.\n\n4. Inverter:\n• Bentuk fisik: Unit konverter daya dengan kipas pendingin dan tampilan tegangan.\n• Fungsi: Mengubah listrik arus searah (DC) dari baterai/panel menjadi arus bolak-balik (AC 220V) untuk peralatan rumah tangga.'
+                        }
+                    ]
+                },
+                aktivitas: {
+                    desc: 'Latihan mengidentifikasi perangkat keras dan urutan aliran daya pada diagram blok.',
+                    items: [
+                        {
+                            id: 'akt2-1',
+                            title: 'Aktivitas 2.1: Urutan Aliran Daya & Fungsi Komponen PLTS',
+                            prompt: 'Tuliskan urutan aliran energi listrik mulai dari sinar matahari hingga menyalakan lampu AC 220V di rumah, serta jelaskan fungsi masing-masing dari 4 komponen utama (Panel Surya, SCC, Baterai, Inverter)!',
+                            deadline: 'Batas waktu: Minggu depan'
+                        }
+                    ]
+                },
+                project: {
+                    desc: 'Pembuatan gambar skema diagram blok perangkat keras.',
+                    items: [
+                        {
+                            id: 'prj2-1',
+                            title: 'Project 2: Skema Diagram Blok Instalasi PLTS Rumahan',
+                            brief: 'Buatlah gambar diagram blok lengkap beserta simbol komponen (Panel Surya, SCC, Baterai, Inverter, dan Beban AC) beserta keterangan jalur arus DC dan AC.',
+                            deadline: 'Tenggat: 2 Minggu lagi'
+                        }
+                    ]
+                },
+                evaluasi: {
+                    desc: 'Evaluasi pengenalan perangkat keras dan simbol diagram blok PLTS.',
+                    items: [
+                        {
+                            id: 'ev2-1',
+                            title: 'Kuis Evaluasi 2: Komponen Utama & Simbol Diagram Blok PLTS',
+                            duration: '10 Menit',
+                            passingScore: 75,
+                            questions: [
+                                {
+                                    q: 'Komponen pada sistem PLTS yang berfungsi mengubah arus listrik searah (DC) menjadi arus bolak-balik (AC) agar dapat digunakan peralatan rumah tangga adalah...',
+                                    options: ['Solar Charge Controller (SCC)', 'Inverter', 'Panel Monocrystalline', 'MCB DC'],
+                                    answerIndex: 1
+                                },
+                                {
+                                    q: 'Fungsi utama Solar Charge Controller (SCC) pada sistem PLTS berbasis baterai adalah...',
+                                    options: [
+                                        'Menaikkan frekuensi listrik menjadi 50 Hz',
+                                        'Mengatur tegangan dan arus pengisian baterai agar terhindar dari overcharging',
+                                        'Menyerap foton cahaya matahari secara langsung',
+                                        'Menyimpan cadangan listrik selama 24 jam'
+                                    ],
+                                    answerIndex: 1
+                                }
+                            ]
+                        }
+                    ]
+                },
+                diskusi: {
+                    desc: 'Diskusi visual mengenai perbedaan jenis perangkat keras PLTS di pasaran.',
+                    items: [
+                        {
+                            id: 'dis2-1',
+                            title: 'Forum Diskusi 2: Pemilihan Jenis Panel Surya & SCC untuk Atap Rumah',
+                            prompt: 'Berdasarkan demonstrasi visual pada video materi, apa perbedaan fisik dan efisiensi antara panel surya Monocrystalline dan Polycrystalline?',
+                            posts: []
+                        }
+                    ]
+                }
+            },
+            {
+                id: 'm3',
+                title: 'Pertemuan 3: Prinsip Kerja & Efek Fotovoltaik',
+                tpack: {
+                    knowledgeType: 'Prinsip',
+                    technology: 'YouTube / Video Animasi',
+                    pedagogy: 'Diskusi kelompok, Tanya jawab'
+                },
+                expanded: false,
+                pendahuluan: {
+                    desc: 'Pemetaan TPACK — Tipe Konten: Prinsip | Teknologi: YouTube / Video Animasi | Pedagogi: Diskusi Kelompok & Tanya Jawab. Mempelajari mekanisme sebab-akibat konversi cahaya matahari menjadi energi elektrik secara atomik.',
+                    items: [
+                        {
+                            id: 'p3-1',
+                            title: 'Pengantar Mekanisme Atomik Efek Fotovoltaik',
+                            subtitle: 'Tipe Pengetahuan: Prinsip · Diskusi Kelompok',
+                            content: 'TUJUAN PERTEMUAN 3:\nMemahami hukum sebab-akibat bagaimana energi foton dari cahaya matahari melepaskan elektron pada bahan semikonduktor silikon (sambungan P-N) sehingga menimbulkan beda potensial dan arus listrik.'
+                        }
+                    ]
+                },
+                materi: {
+                    desc: 'Pelajari simulasi animasi proses atomik efek fotovoltaik di bawah ini.',
+                    items: [
+                        {
+                            id: 'mat3-1',
+                            title: 'Video Animasi & Modul: Mekanisme Atomik Efek Fotovoltaik (P-N Junction)',
+                            fileType: 'VIDEO / PDF',
+                            fileSize: '1.9 MB',
+                            uploadedAt: 'Teknologi: YouTube / Video Animasi',
+                            content: 'PRINSIP KERJA EFEK FOTOVOLTAIK:\n\n1. Struktur Semikonduktor Silikon:\nSel surya tersusun atas dua lapisan silikon: Tipe-N (kelebihan elektron, didoping fosfor) dan Tipe-P (kelebihan hole/muatan positif, didoping boron) yang membentuk medan listrik internal pada sambungan P-N.\n\n2. Tumbukan Foton Cahaya:\nKetika foton dari sinar matahari menumbuk atom silikon dengan energi yang cukup, elektron terlepas dari ikatan atomnya (pasangan elektron-hole terbentuk).\n\n3. Aliran Arus Listrik:\nMedan listrik di persimpangan P-N mendorong elektron menuju sisi-N dan hole menuju sisi-P. Jika dihubungkan dengan penghantar luar, elektron mengalir dan menghasilkan arus listrik searah (DC).'
+                        }
+                    ]
+                },
+                aktivitas: {
+                    desc: 'Latihan menyusun tahapan sebab-akibat efek fotovoltaik.',
+                    items: [
+                        {
+                            id: 'akt3-1',
+                            title: 'Aktivitas 3.1: Penjelasan Mekanisme Sebab-Akibat Efek Fotovoltaik',
+                            prompt: 'Jelaskan secara runtut bagaimana tumbukan partikel cahaya (foton) pada lapisan semikonduktor tipe-P dan tipe-N dapat menghasilkan aliran arus listrik!',
+                            deadline: 'Batas waktu: Minggu ini'
+                        }
+                    ]
+                },
+                project: {
+                    desc: 'Diskusi kelompok dan penyusunan rangkuman visual mekanisme fotovoltaik.',
+                    items: [
+                        {
+                            id: 'prj3-1',
+                            title: 'Project Kelompok 3: Peta Alur Konversi Foton Menjadi Elektron',
+                            brief: 'Buatlah ringkasan alur kerja sel fotovoltaik secara atomik dalam bentuk bagan sebab-akibat bersama kelompok Anda.',
+                            deadline: 'Tenggat: Pekan Depan'
+                        }
+                    ]
+                },
+                evaluasi: {
+                    desc: 'Kuis pemahaman prinsip kerja efek fotovoltaik.',
+                    items: [
+                        {
+                            id: 'ev3-1',
+                            title: 'Kuis Evaluasi 3: Prinsip Efek Fotovoltaik',
+                            duration: '10 Menit',
+                            passingScore: 75,
+                            questions: [
+                                {
+                                    q: 'Partikel cahaya matahari yang menumbuk permukaan sel surya dan melepaskan elektron dari atom silikon disebut...',
+                                    options: ['Proton', 'Foton', 'Neutron', 'Positron'],
+                                    answerIndex: 1
+                                },
+                                {
+                                    q: 'Arus listrik yang dihasilkan langsung oleh sel surya akibat efek fotovoltaik berjenis...',
+                                    options: ['Arus Bolak-Balik (AC)', 'Arus Searah (DC)', 'Arus Tiga Fasa', 'Arus Induksi Magnetik'],
+                                    answerIndex: 1
+                                }
+                            ]
+                        }
+                    ]
+                },
+                diskusi: {
+                    desc: 'Sesi tanya jawab interaktif seputar fenomena fisik pada sel surya.',
+                    items: [
+                        {
+                            id: 'dis3-1',
+                            title: 'Forum Diskusi 3: Tanya Jawab Efek Fotovoltaik',
+                            prompt: 'Mengapa sel surya tetap membutuhkan lapisan anti-refleksi di bagian permukaan atasnya?',
+                            posts: []
+                        }
+                    ]
+                }
+            },
+            {
+                id: 'm4',
+                title: 'Pertemuan 4: Faktor Pengaruh Kinerja PLTS (Intensitas & Suhu)',
+                tpack: {
+                    knowledgeType: 'Prinsip',
+                    technology: 'NREL PVWatts Calculator',
+                    pedagogy: 'Eksplorasi mandiri, Diskusi'
+                },
+                expanded: false,
+                pendahuluan: {
+                    desc: 'Pemetaan TPACK — Tipe Konten: Prinsip | Teknologi: NREL PVWatts Calculator | Pedagogi: Eksplorasi Mandiri & Diskusi. Mempelajari hubungan sebab-akibat perubahan output daya akibat suhu modul dan radiasi matahari.',
+                    items: [
+                        {
+                            id: 'p4-1',
+                            title: 'Panduan Eksplorasi NREL PVWatts Calculator',
+                            subtitle: 'Tipe Pengetahuan: Prinsip · Eksplorasi Mandiri',
+                            content: 'TUJUAN PERTEMUAN 4:\nMenganalisis bagaimana intensitas radiasi matahari (iradiasi) meningkatkan arus output, serta bagaimana kenaikan suhu permukaan modul surya justru menurunkan tegangan output melalui simulasi NREL PVWatts Calculator.'
+                        }
+                    ]
+                },
+                materi: {
+                    desc: 'Pelajari prinsip pengaruh lingkungan terhadap kurva daya panel surya serta cara menggunakan NREL PVWatts Calculator.',
+                    items: [
+                        {
+                            id: 'mat4-1',
+                            title: 'Modul & Panduan Simulasi: Pengaruh Iradiasi & Suhu Modul (NREL PVWatts)',
+                            fileType: 'SIMULASI / PDF',
+                            fileSize: '890 KB',
+                            uploadedAt: 'Teknologi: NREL PVWatts Calculator',
+                            content: 'FAKTOR PENGARUH KINERJA PLTS (PRINSIP SEBAB-AKIBAT):\n\n1. Pengaruh Intensitas Radiasi Matahari (Irradiance):\n• Semakin tinggi intensitas cahaya matahari (W/m²), semakin banyak elektron yang terlepas sehingga arus listrik (Ampere) dan daya output meningkat secara proporsional.\n• Kondisi Standar Pengujian (STC): 1000 W/m² pada suhu sel 25°C.\n\n2. Pengaruh Suhu Modul Surya:\n• Panel surya bekerja optimal pada suhu sejuk dengan cahaya terang.\n• Kenaikan suhu permukaan panel di atas 25°C menyebabkan tegangan output (Voc) turun sesuai koefisien temperatur modul (sekitar -0,3% hingga -0,4% per °C), sehingga daya total berkurang.\n\n3. Eksplorasi NREL PVWatts Calculator:\nGunakan situs pvwatts.nrel.gov untuk mensimulasikan estimasi produksi energi (kWh/tahun) berdasarkan lokasi geografis, sudut kemiringan atap (tilt), dan arah hadap (azimuth).'
+                        }
+                    ]
+                },
+                aktivitas: {
+                    desc: 'Lakukan eksplorasi mandiri menggunakan NREL PVWatts Calculator dan laporkan hasil pengamatan Anda.',
+                    items: [
+                        {
+                            id: 'akt4-1',
+                            title: 'Aktivitas 4.1: Eksplorasi Simulasi NREL PVWatts Calculator',
+                            prompt: 'Buka NREL PVWatts Calculator (pvwatts.nrel.gov), masukkan lokasi kota/daerah Anda dengan kapasitas sistem 2 kW DC. Catat berapa estimasi energi tahunan (kWh/Year) yang dihasilkan dan jelaskan pengaruh variasi sudut kemiringan atap!',
+                            deadline: 'Batas waktu: Minggu ini'
+                        }
+                    ]
+                },
+                project: {
+                    desc: 'Analisis komparasi performa PLTS berdasarkan data simulasi lingkungan.',
+                    items: [
+                        {
+                            id: 'prj4-1',
+                            title: 'Project 4: Laporan Eksplorasi Pengaruh Orientasi Atap & Suhu pada NREL PVWatts',
+                            brief: 'Bandingkan hasil simulasi NREL PVWatts untuk 2 sudut kemiringan atap berbeda (misal 10° vs 25°) dan jelaskan faktor lingkungan yang memengaruhi perbedaannya.',
+                            deadline: 'Tenggat: Pekan Depan'
+                        }
+                    ]
+                },
+                evaluasi: {
+                    desc: 'Evaluasi prinsip pengaruh intensitas radiasi dan suhu terhadap daya PLTS.',
+                    items: [
+                        {
+                            id: 'ev4-1',
+                            title: 'Kuis Evaluasi 4: Faktor Lingkungan & Kinerja PLTS',
+                            duration: '10 Menit',
+                            passingScore: 75,
+                            questions: [
+                                {
+                                    q: 'Apa yang terjadi pada tegangan output (Voc) panel surya apabila suhu permukaan modul meningkat jauh di atas suhu standar 25°C?',
+                                    options: [
+                                        'Tegangan meningkat drastis',
+                                        'Tegangan mengalami penurunan sesuai koefisien temperatur modul',
+                                        'Tegangan tidak berubah sama sekali',
+                                        'Arus listrik berubah menjadi AC'
+                                    ],
+                                    answerIndex: 1
+                                },
+                                {
+                                    q: 'Faktor utama yang berbanding lurus dengan peningkatan arus listrik (Ampere) yang dihasilkan panel surya adalah...',
+                                    options: ['Kelembapan udara malam hari', 'Intensitas radiasi matahari (Irradiance)', 'Warna kabel penghantar', 'Tinggi plafon rumah'],
+                                    answerIndex: 1
+                                }
+                            ]
+                        }
+                    ]
+                },
+                diskusi: {
+                    desc: 'Diskusi hasil eksplorasi mandiri NREL PVWatts antar siswa.',
+                    items: [
+                        {
+                            id: 'dis4-1',
+                            title: 'Forum Diskusi 4: Optimalisasi Sirkulasi Udara di Bawah Panel Surya Atap',
+                            prompt: 'Mengapa pemasangan panel surya di atap rumah perlu diberi jarak celah udara (mounting gap) dengan genteng/atap?',
+                            posts: []
+                        }
+                    ]
+                }
+            },
+            {
+                id: 'm5',
+                title: 'Pertemuan 5: Langkah Perhitungan Kebutuhan PLTS Rumahan',
+                tpack: {
+                    knowledgeType: 'Prosedur',
+                    technology: 'Web kalkulator surya, Google sheets',
+                    pedagogy: 'Ceramah, Latihan / Praktik digital'
+                },
+                expanded: false,
+                pendahuluan: {
+                    desc: 'Pemetaan TPACK — Tipe Konten: Prosedur | Teknologi: Web Kalkulator Surya & Google Sheets | Pedagogi: Ceramah & Latihan/Praktik Digital. Mengikuti tahapan sistematis menghitung kapasitas beban rumah dan ukuran modul surya.',
+                    items: [
+                        {
+                            id: 'p5-1',
+                            title: 'Alur Prosedural Perancangan Kapasitas PLTS Domestik',
+                            subtitle: 'Tipe Pengetahuan: Prosedur · Praktik Digital',
+                            content: 'LANGKAH SISTEMATIS PERHITUNGAN PLTS RUMAHAN:\nLangkah 1: Audit total konsumsi energi harian peralatan rumah tangga (Watt × Jam = Wh/hari).\nLangkah 2: Hitung kebutuhan kapasitas Panel Surya (Wp) berdasarkan Peak Sun Hours (PSH) dan faktor losses sistem.\nLangkah 3: Hitung kapasitas Baterai (Ah) berdasarkan tegangan sistem (12V/24V/48V) dan Depth of Discharge (DoD).\nLangkah 4: Tentukan spesifikasi Inverter dan SCC yang sesuai.'
+                        }
+                    ]
+                },
+                materi: {
+                    desc: 'Pelajari contoh rumus perhitungan sistematis menggunakan Google Sheets dan Web Kalkulator Surya.',
+                    items: [
+                        {
+                            id: 'mat5-1',
+                            title: 'Modul Prosedur & Template Rumus Google Sheets Perhitungan PLTS',
+                            fileType: 'SHEETS / PDF',
+                            fileSize: '760 KB',
+                            uploadedAt: 'Teknologi: Web Kalkulator Surya & Google Sheets',
+                            content: 'CONTOH PROSEDUR PERHITUNGAN PLTS RUMAHAN:\n\n1. Audit Beban Harian:\n• 4 Lampu LED 15W × 6 jam = 360 Wh\n• 1 Kulkas 100W × 12 jam = 1.200 Wh\n• 1 TV LED 80W × 4 jam = 320 Wh\nTotal Energi Harian = 1.880 Wh/hari (1,88 kWh).\n\n2. Ukuran Panel Surya (Wp):\nDengan faktor rugi-rugi (losses 1,25) dan rata-rata penyinaran efektif (PSH) 4,5 jam/hari:\nKapasitas PV = (1.880 × 1,25) / 4,5 = 522,2 Wp → Dibulatkan menjadi 2 lembar panel 300 Wp (600 Wp).\n\n3. Ukuran Baterai (Sistem 24V, DoD 80%):\nKapasitas Baterai = 1.880 / (24 × 0,8) = 97,9 Ah → Dipilih baterai 24V 100Ah.'
+                        }
+                    ]
+                },
+                aktivitas: {
+                    desc: 'Latihan praktik digital menghitung kebutuhan sistem PLTS untuk studi kasus rumah tinggal.',
+                    items: [
+                        {
+                            id: 'akt5-1',
+                            title: 'Aktivitas 5.1: Latihan Praktik Digital Perhitungan Kebutuhan PLTS',
+                            prompt: 'Sebuah rumah memiliki total beban harian 3.600 Wh dengan Peak Sun Hours (PSH) 4,5 jam dan faktor losses 1,2. Hitunglah berapa minimal kapasitas Panel Surya (Wp) yang dibutuhkan beserta jumlah panel jika menggunakan modul berkapasitas 450 Wp per lembar!',
+                            deadline: 'Batas waktu: Minggu ini'
+                        }
+                    ]
+                },
+                project: {
+                    desc: 'Project akhir merancang kalkulator ukuran PLTS menggunakan Google Sheets.',
+                    items: [
+                        {
+                            id: 'prj5-1',
+                            title: 'Project 5: Simulasi Perhitungan PLTS Rumahan di Google Sheets',
+                            brief: 'Buatlah tabel audit beban listrik rumah Anda sendiri di Google Sheets lengkap dengan rumus otomatis untuk menentukan total Wh, kapasitas Wp panel surya, dan kapasitas baterai (Ah), lalu bandingkan hasilnya dengan Web Kalkulator Surya.',
+                            deadline: 'Tenggat: Akhir Semester 5'
+                        }
+                    ]
+                },
+                evaluasi: {
+                    desc: 'Evaluasi prosedural perhitungan kapasitas beban dan ukuran modul surya.',
+                    items: [
+                        {
+                            id: 'ev5-1',
+                            title: 'Kuis Evaluasi 5: Prosedur Perhitungan Kebutuhan PLTS Rumahan',
+                            duration: '15 Menit',
+                            passingScore: 75,
+                            questions: [
+                                {
+                                    q: 'Langkah pertama yang paling tepat dalam prosedur perancangan kebutuhan PLTS atap skala domestik adalah...',
+                                    options: [
+                                        'Langsung membeli inverter berkapasitas paling besar',
+                                        'Melakukan audit kebutuhan beban listrik harian (Watt × lama pemakaian dalam Wh)',
+                                        'Menentukan warna bingkai panel surya',
+                                        'Menghitung biaya pengecatan atap'
+                                    ],
+                                    answerIndex: 1
+                                },
+                                {
+                                    q: 'Jika kebutuhan energi harian rumah sebesar 2.000 Wh (termasuk losses) dan rata-rata penyinaran efektif (Peak Sun Hours) adalah 4 jam/hari, maka kapasitas minimal panel surya yang diperlukan adalah...',
+                                    options: ['250 Wp', '500 Wp', '800 Wp', '2.000 Wp'],
+                                    answerIndex: 1
+                                }
+                            ]
+                        }
+                    ]
+                },
+                diskusi: {
+                    desc: 'Diskusi praktik digital penggunaan Google Sheets dan Web Kalkulator Surya.',
+                    items: [
+                        {
+                            id: 'dis5-1',
+                            title: 'Forum Diskusi 5: Akurasi Web Kalkulator Surya vs Perhitungan Manual',
+                            prompt: 'Kendala apa yang sering muncul saat menentukan faktor koreksi daya (losses) pada perhitungan PLTS skala rumahan?',
+                            posts: []
+                        }
+                    ]
+                }
+            }
+        ];
+
+        // Status penyelesaian item per siswa (key: `${username}_${itemId}`)
+        let completedItems = {
+            'siswa1_p1-1': true,
+            'siswa1_mat1-1': true
+        };
+
+        // Rekap Aktivitas & Hasil Evaluasi Siswa (Terhubung ke Google Spreadsheet)
+        let studentRecords = [
+            {
+                id: 'REC-1001',
+                timestamp: '2026-11-23 08:30:12',
+                studentName: 'Ni Putu Ayu Lestari',
+                studentId: '2415061012',
+                meetingTitle: 'Pertemuan 1',
+                category: 'Materi',
+                itemTitle: 'Slide Visual Canva: Definisi, Kategori Sistem & Energi Surya vs Konvensional',
+                scoreOrStatus: 'Selesai Dibaca',
+                detail: 'Siswa menyelesaikan pembacaan materi konsep dasar PLTS.',
+                syncedToSheet: true
+            },
+            {
+                id: 'REC-1002',
+                timestamp: '2026-11-23 09:45:00',
+                studentName: 'I Gede Bagus Pratama',
+                studentId: '2415061018',
+                meetingTitle: 'Pertemuan 1',
+                category: 'Evaluasi',
+                itemTitle: 'Kuis Evaluasi 1: Konsep & Kategori Sistem PLTS',
+                scoreOrStatus: 'Skor: 100 (Lulus)',
+                detail: 'Benar 2 dari 2 soal pilihan ganda.',
+                syncedToSheet: true
+            }
+        ];
+
+        // State UI & Navigasi
+        let currentUser = null; // null berarti belum login
+        let activeTab = 'course'; // 'course' | 'forum' | 'spreadsheet'
+        let filterCategory = 'ALL';
+
+        /**
+         * ============================================================================
+         * 2. HELPER FUNCTIONS: TOAST, CLIPBOARD, GOOGLE SPREADSHEET SYNC
+         * ============================================================================
+         */
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const colors = {
+                success: 'bg-emerald-600 text-white border-emerald-700',
+                error: 'bg-rose-600 text-white border-rose-700',
+                warning: 'bg-amber-500 text-stone-950 border-amber-600',
+                info: 'bg-stone-800 text-amber-300 border-stone-700'
+            };
+            const icons = {
+                success: 'fa-check-circle',
+                error: 'fa-exclamation-circle',
+                warning: 'fa-exclamation-triangle',
+                info: 'fa-sun'
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium transform transition-all duration-300 translate-y-2 opacity-0 ${colors[type] || colors.info}`;
+            toast.innerHTML = `
+                <i class="fas ${icons[type] || icons.info} text-base"></i>
+                <span class="flex-1">${message}</span>
+            `;
+            container.appendChild(toast);
+
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        function copyTextSafe(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast('Teks berhasil disalin ke clipboard!', 'success');
+            } catch (err) {
+                showToast('Gagal menyalin teks.', 'error');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function formatNow() {
+            const now = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+        }
+
+        /**
+         * Mengirim catatan aktivitas / nilai evaluasi siswa ke Google Spreadsheet
+         * menggunakan Google Apps Script Web App URL (jika dikonfigurasi) + menyimpan ke log lokal.
+         */
+        async function recordAndSyncToGoogleSheets({ meetingTitle, category, itemTitle, scoreOrStatus, detail, itemId }) {
+            if (!currentUser) return;
+
+            if (itemId) {
+                completedItems[`${currentUser.username}_${itemId}`] = true;
+            }
+
+            const newRecord = {
+                id: 'REC-' + Math.floor(1000 + Math.random() * 9000),
+                timestamp: formatNow(),
+                studentName: currentUser.name,
+                studentId: currentUser.idNumber,
+                meetingTitle: meetingTitle.split(':')[0],
+                category,
+                itemTitle,
+                scoreOrStatus,
+                detail,
+                syncedToSheet: false
+            };
+
+            // Jika URL Webhook Google Apps Script sudah diisi oleh Guru, kirim HTTP POST
+            if (sheetConfig.webhookUrl && sheetConfig.webhookUrl.trim().startsWith('http')) {
+                try {
+                    await fetch(sheetConfig.webhookUrl.trim(), {
+                        method: 'POST',
+                        mode: 'no-cors', // Wajib untuk Google Apps Script Web App
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(newRecord)
+                    });
+                    newRecord.syncedToSheet = true;
+                    sheetConfig.lastSyncTime = newRecord.timestamp;
+                    showToast(`Data "${category}" tersimpan & terkirim ke Google Spreadsheet!`, 'success');
+                } catch (error) {
+                    console.error('Webhook error:', error);
+                    showToast('Tersimpan di rekap lokal. Periksa kembali URL Google Apps Script.', 'warning');
+                }
+            } else {
+                // Mode simulasi terhubung langsung ke tabel rekap Google Spreadsheet
+                newRecord.syncedToSheet = true;
+                sheetConfig.lastSyncTime = newRecord.timestamp;
+                showToast(`Aktivitas "${category}" tercatat di Rekap & siap ekspor Google Sheets!`, 'success');
+            }
+
+            studentRecords.unshift(newRecord);
+            renderApp();
+        }
+
+        function closeModal() {
+            document.getElementById('modal-root').innerHTML = '';
+        }
+
+        /**
+         * ============================================================================
+         * 3. RENDER HALAMAN LOGIN (TEMA MINIMALIS KUNING SURYA - LMS PLTS)
+         * ============================================================================
+         */
+        function renderLoginScreen() {
+            return `
+                <div class="min-h-screen bg-[#fafaf9] flex items-center justify-center p-4 sm:p-6">
+                    <!-- Kartu Login Minimalis dengan Aksen Kuning Surya di Sisi Kiri -->
+                    <div class="w-full max-w-[460px] bg-white rounded-2xl shadow-xl shadow-stone-200/70 overflow-hidden flex border border-stone-200/90">
+                        <!-- Strip Kuning Surya Minimalis di Sisi Kiri -->
+                        <div class="w-3 sm:w-3.5 bg-amber-400 shrink-0"></div>
+
+                        <!-- Konten Form Login -->
+                        <div class="flex-1 px-7 py-9 sm:px-10 sm:py-11 flex flex-col items-center">
+                            <!-- Logo Minimalis LMS PLTS (Matahari & Panel Surya) -->
+                            <div class="mb-4 flex flex-col items-center">
+                                <div class="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center shadow-2xs mb-2">
+                                    <svg class="w-10 h-10" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <!-- Matahari -->
+                                        <circle cx="44" cy="20" r="8" fill="#F59E0B"/>
+                                        <path d="M44 6V9M44 31V34M58 20H55M33 20H30M53.9 10.1L51.8 12.2M36.2 27.8L34.1 29.9M53.9 29.9L51.8 27.8M36.2 12.2L34.1 10.1" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/>
+                                        <!-- Panel Surya -->
+                                        <path d="M12 34L22 26H46L36 34H12Z" fill="#292524"/>
+                                        <path d="M10 36H38L32 52H4L10 36Z" fill="#1C1917" stroke="#F59E0B" stroke-width="2" stroke-linejoin="round"/>
+                                        <path d="M19 36L13 52M28 36L22 52M7 44H35" stroke="#FBBF24" stroke-width="1.5"/>
+                                    </svg>
+                                </div>
+                                <div class="flex items-center tracking-widest text-xs font-extrabold text-stone-700">
+                                    <span class="text-amber-600 mr-1">LMS</span>PLTS
+                                </div>
+                            </div>
+
+                            <h1 class="text-2xl sm:text-[26px] font-bold text-stone-900 tracking-tight text-center">
+                                Login LMS PLTS
+                            </h1>
+                            <p class="text-stone-500 text-xs sm:text-sm mt-1.5 mb-6 text-center">
+                                Energi Baru Terbarukan · Kelas 39 (Semester 5)
+                            </p>
+
+                            <!-- Quick Fill Role Buttons untuk Kemudahan Pengguna -->
+                            <div class="w-full mb-5 bg-amber-50/60 border border-amber-200/80 rounded-xl p-2.5">
+                                <div class="text-[11px] font-semibold text-stone-600 uppercase tracking-wider text-center mb-2">
+                                    Masuk Cepat (Akun Simulasi):
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button type="button" onclick="quickFillLogin('siswa1', '123')"
+                                        class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold bg-white border border-stone-200 text-stone-700 hover:border-amber-400 hover:bg-amber-50 transition">
+                                        <i class="fas fa-user-graduate text-amber-600"></i>
+                                        Login Siswa
+                                    </button>
+                                    <button type="button" onclick="quickFillLogin('guru1', '123')"
+                                        class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold bg-white border border-stone-200 text-stone-700 hover:border-amber-400 hover:bg-amber-50 transition">
+                                        <i class="fas fa-chalkboard-teacher text-amber-600"></i>
+                                        Login Guru
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Form Input -->
+                            <form onsubmit="handleLogin(event)" class="w-full space-y-4">
+                                <div class="relative">
+                                    <label for="login-username" class="block text-[11px] font-semibold text-amber-700 bg-white px-1.5 ml-3 -mb-2 relative z-10 w-fit">
+                                        Username
+                                    </label>
+                                    <input id="login-username" type="text" required placeholder="Masukkan username (siswa1 / guru1)"
+                                        class="w-full px-4 py-3 rounded-xl border border-stone-300 focus:border-amber-500 focus:ring-3 focus:ring-amber-400/20 outline-none text-sm text-stone-800 transition">
+                                </div>
+
+                                <div class="relative">
+                                    <label for="login-password" class="block text-[11px] font-semibold text-stone-500 bg-white px-1.5 ml-3 -mb-2 relative z-10 w-fit">
+                                        Password
+                                    </label>
+                                    <div class="relative">
+                                        <input id="login-password" type="password" required placeholder="Password"
+                                            class="w-full px-4 py-3 rounded-xl border border-stone-300 focus:border-amber-500 focus:ring-3 focus:ring-amber-400/20 outline-none text-sm text-stone-800 transition pr-10">
+                                        <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600">
+                                            <i id="pwd-eye-icon" class="fas fa-eye text-sm"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between text-xs pt-0.5">
+                                    <span class="text-stone-400">Pass default: <strong class="text-stone-600">123</strong></span>
+                                    <button type="button" onclick="openForgotPasswordModal()" class="text-amber-700 font-medium hover:underline">
+                                        Info Akun?
+                                    </button>
+                                </div>
+
+                                <button type="submit"
+                                    class="w-full py-3 px-4 bg-amber-400 hover:bg-amber-500 active:scale-[0.99] text-stone-950 font-bold rounded-xl shadow-sm shadow-amber-400/30 transition text-sm mt-2">
+                                    Masuk ke LMS PLTS
+                                </button>
+                            </form>
+
+                            <!-- Footer Minimalis Pembuat TPACK -->
+                            <div class="mt-8 pt-4 border-t border-stone-100 flex items-center justify-center gap-2.5 text-stone-500">
+                                <div class="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center">
+                                    <i class="fas fa-solar-panel text-xs text-amber-600"></i>
+                                </div>
+                                <div class="text-left leading-tight">
+                                    <div class="text-[11px] font-semibold text-stone-700">Berbasis Pemetaan TPACK</div>
+                                    <div class="text-[10px] text-stone-500">I Kadek Satriantara · 2415061003</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function quickFillLogin(user, pass) {
+            document.getElementById('login-username').value = user;
+            document.getElementById('login-password').value = pass;
+            showToast(`Kredensial ${user === 'guru1' ? 'Guru' : 'Siswa'} terisi. Klik Login!`, 'info');
+        }
+
+        function togglePasswordVisibility() {
+            const input = document.getElementById('login-password');
+            const icon = document.getElementById('pwd-eye-icon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const uname = document.getElementById('login-username').value.trim().toLowerCase();
+            const pwd = document.getElementById('login-password').value.trim();
+
+            const found = USERS_DB.find(u => u.username.toLowerCase() === uname && u.password === pwd);
+            if (!found) {
+                showToast('Username atau Password salah! Gunakan siswa1 / 123 atau guru1 / 123.', 'error');
+                return;
+            }
+
+            currentUser = { ...found };
+            activeTab = 'course';
+            showToast(`Selamat datang, ${currentUser.name} (${currentUser.role.toUpperCase()})!`, 'success');
+            renderApp();
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            showToast('Anda telah keluar dari sistem.', 'info');
+            renderApp();
+        }
+
+        function openForgotPasswordModal() {
+            document.getElementById('modal-root').innerHTML = `
+                <div class="fixed inset-0 bg-stone-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-stone-200">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-stone-800">Informasi Akun LMS PLTS</h3>
+                            <button onclick="closeModal()" class="text-stone-400 hover:text-stone-600 p-1"><i class="fas fa-times"></i></button>
+                        </div>
+                        <p class="text-sm text-stone-600 mb-4">
+                            Gunakan kredensial berikut untuk mengakses fitur siswa maupun guru:
+                        </p>
+                        <div class="space-y-2.5 text-xs mb-5">
+                            <div class="p-3 rounded-xl bg-amber-50 border border-amber-200">
+                                <div class="font-bold text-amber-900 mb-0.5"><i class="fas fa-user-graduate mr-1"></i> Akun Siswa</div>
+                                <div>Username: <strong>siswa1</strong> atau <strong>siswa2</strong> | Password: <strong>123</strong></div>
+                            </div>
+                            <div class="p-3 rounded-xl bg-stone-100 border border-stone-200">
+                                <div class="font-bold text-stone-800 mb-0.5"><i class="fas fa-chalkboard-teacher mr-1"></i> Akun Guru (I Kadek Satriantara)</div>
+                                <div>Username: <strong>guru1</strong> | Password: <strong>123</strong></div>
+                            </div>
+                        </div>
+                        <button onclick="closeModal()" class="w-full py-2.5 bg-amber-400 text-stone-950 rounded-xl font-bold text-sm hover:bg-amber-500">
+                            Mengerti
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * ============================================================================
+         * 4. RENDER NAVBAR & KERANGKA UTAMA LMS PLTS (MINIMALIS KUNING SURYA)
+         * ============================================================================
+         */
+        function renderNavbar() {
+            const isGuru = currentUser.role === 'guru';
+            return `
+                <header class="bg-white border-b border-stone-200 sticky top-0 z-30">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div class="flex items-center justify-between h-16">
+                            <!-- Kiri: Brand Logo LMS PLTS -->
+                            <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('course')">
+                                <div class="w-9 h-9 rounded-xl bg-amber-400 flex items-center justify-center text-stone-950 shadow-2xs">
+                                    <i class="fas fa-solar-panel text-base"></i>
+                                </div>
+                                <div class="leading-tight">
+                                    <div class="font-extrabold text-sm sm:text-base tracking-tight text-stone-900">
+                                        LMS <span class="text-amber-600">PLTS</span>
+                                    </div>
+                                    <div class="text-[10px] text-stone-500 font-medium hidden sm:block">
+                                        Energi Baru Terbarukan · Kelas 39
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tengah: Menu Navigasi -->
+                            <nav class="hidden md:flex items-center gap-1.5">
+                                <button onclick="switchTab('course')"
+                                    class="px-3.5 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2 ${activeTab === 'course' ? 'bg-amber-100/80 text-stone-950 font-semibold border border-amber-300/70' : 'text-stone-600 hover:bg-stone-100'}">
+                                    <i class="fas fa-book-open text-xs text-amber-600"></i>
+                                    Beranda Materi
+                                </button>
+                                <button onclick="switchTab('forum')"
+                                    class="px-3.5 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2 ${activeTab === 'forum' ? 'bg-amber-100/80 text-stone-950 font-semibold border border-amber-300/70' : 'text-stone-600 hover:bg-stone-100'}">
+                                    <i class="fas fa-comments text-xs text-amber-600"></i>
+                                    Forum Diskusi
+                                </button>
+                                <button onclick="switchTab('spreadsheet')"
+                                    class="px-3.5 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2 ${activeTab === 'spreadsheet' ? 'bg-emerald-50 text-emerald-800 font-semibold border border-emerald-200' : 'text-stone-600 hover:bg-stone-100'}">
+                                    <i class="fas fa-file-excel text-xs text-emerald-600"></i>
+                                    ${isGuru ? 'Dashboard Guru & Sheets' : 'Rekap & Nilai'}
+                                </button>
+                            </nav>
+
+                            <!-- Kanan: Info User & Tombol Keluar -->
+                            <div class="flex items-center gap-2.5 sm:gap-3">
+                                <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${isGuru ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-stone-100 text-stone-700 border border-stone-200'}">
+                                    <i class="fas ${isGuru ? 'fa-chalkboard-teacher text-amber-600' : 'fa-user-graduate text-amber-600'}"></i>
+                                    ${isGuru ? 'Mode Guru' : 'Mode Siswa'}
+                                </span>
+                                <div class="text-right hidden lg:block">
+                                    <div class="text-xs font-bold text-stone-800">${currentUser.name}</div>
+                                    <div class="text-[11px] text-stone-500">${currentUser.idNumber}</div>
+                                </div>
+                                <button onclick="handleLogout()" title="Keluar"
+                                    class="px-3 py-2 rounded-xl border border-stone-200 text-stone-600 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 text-xs font-semibold transition flex items-center gap-1.5">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                    <span class="hidden sm:inline">Keluar</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Navigasi Mobile -->
+                        <div class="flex md:hidden border-t border-stone-100 py-2 gap-1.5 overflow-x-auto">
+                            <button onclick="switchTab('course')"
+                                class="flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold text-center whitespace-nowrap ${activeTab === 'course' ? 'bg-amber-400 text-stone-950' : 'text-stone-600 bg-stone-50'}">
+                                Beranda LMS
+                            </button>
+                            <button onclick="switchTab('forum')"
+                                class="flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold text-center whitespace-nowrap ${activeTab === 'forum' ? 'bg-amber-400 text-stone-950' : 'text-stone-600 bg-stone-50'}">
+                                Forum Diskusi
+                            </button>
+                            <button onclick="switchTab('spreadsheet')"
+                                class="flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold text-center whitespace-nowrap ${activeTab === 'spreadsheet' ? 'bg-emerald-600 text-white' : 'text-stone-600 bg-stone-50'}">
+                                ${isGuru ? 'Edit & Sheets' : 'Rekap Nilai'}
+                            </button>
+                        </div>
+                    </div>
+                </header>
+            `;
+        }
+
+        function switchTab(tab) {
+            activeTab = tab;
+            renderApp();
+        }
+
+        /**
+         * ============================================================================
+         * 5. RENDER BERANDA KURSUS (ACCORDION PERTEMUAN & PEMETAAN TPACK)
+         * ============================================================================
+         */
+        function renderCourseHome() {
+            const isGuru = currentUser.role === 'guru';
+
+            return `
+                <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+                    <!-- Header Informasi Mata Pelajaran (Minimalis Kuning Surya) -->
+                    <div class="bg-white rounded-2xl border border-stone-200 shadow-2xs p-5 sm:p-7 mb-6 relative overflow-hidden">
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-amber-400"></div>
+                        <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                            <div>
+                                <div class="inline-flex items-center gap-2 text-xs font-semibold text-amber-900 bg-amber-100/80 border border-amber-200 px-3 py-1 rounded-full mb-2.5">
+                                    <i class="fas fa-sun text-amber-600"></i>
+                                    <span>${courseInfo.code}</span>
+                                    <span>·</span>
+                                    <span>${courseInfo.metaInfo || 'Kelas 39 · Semester 5'}</span>
+                                </div>
+                                <h1 class="text-xl sm:text-2xl font-extrabold text-stone-900">
+                                    ${courseInfo.title}
+                                </h1>
+                                <p class="text-sm text-stone-600 mt-2 leading-relaxed max-w-3xl">
+                                    ${courseInfo.description}
+                                </p>
+                            </div>
+
+                            <!-- Tombol Aksi Cepat Guru / Status Sync -->
+                            <div class="flex flex-wrap items-center gap-2 shrink-0">
+                                ${isGuru ? `
+                                    <button onclick="openEditCourseModal()"
+                                        class="px-3.5 py-2 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold flex items-center gap-1.5 transition">
+                                        <i class="fas fa-edit text-amber-600"></i> Edit Info Mapel
+                                    </button>
+                                    <button onclick="openAddMeetingModal()"
+                                        class="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-stone-950 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition">
+                                        <i class="fas fa-plus"></i> Tambah Pertemuan
+                                    </button>
+                                ` : `
+                                    <div class="px-3.5 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center gap-2">
+                                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                        Terhubung Google Sheets
+                                    </div>
+                                `}
+                            </div>
+                        </div>
+
+                        <!-- Kontrol Expand / Collapse Semua Pertemuan -->
+                        <div class="mt-5 pt-4 border-t border-stone-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                            <span class="text-stone-500 font-medium">
+                                Struktur Pembelajaran: <strong class="text-stone-800">${meetings.length} Topik Pertemuan (TPACK)</strong>
+                            </span>
+                            <div class="flex items-center gap-3">
+                                <button onclick="toggleAllMeetings(true)" class="text-amber-700 hover:underline font-semibold">
+                                    Buka Semua
+                                </button>
+                                <span class="text-stone-300">|</span>
+                                <button onclick="toggleAllMeetings(false)" class="text-stone-600 hover:underline font-medium">
+                                    Tutup Semua
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Daftar Accordion Pertemuan -->
+                    <div class="space-y-4">
+                        ${meetings.map((m, idx) => renderMeetingAccordion(m, idx)).join('')}
+                    </div>
+                </main>
+            `;
+        }
+
+        function toggleMeeting(meetingId) {
+            const m = meetings.find(item => item.id === meetingId);
+            if (m) {
+                m.expanded = !m.expanded;
+                renderApp();
+            }
+        }
+
+        function toggleAllMeetings(expandState) {
+            meetings.forEach(m => m.expanded = expandState);
+            renderApp();
+        }
+
+        function renderMeetingAccordion(meeting, index) {
+            const isGuru = currentUser.role === 'guru';
+            const tpack = meeting.tpack || { knowledgeType: 'Konsep', technology: 'LMS PLTS', pedagogy: 'Diskusi' };
+
+            return `
+                <div class="bg-white rounded-2xl border border-stone-200/90 shadow-2xs overflow-hidden">
+                    <!-- Header Bar Accordion Minimalis -->
+                    <div class="bg-stone-100/80 hover:bg-amber-50/60 transition px-4 sm:px-5 py-3.5 flex items-center justify-between gap-3 cursor-pointer select-none"
+                         onclick="toggleMeeting('${meeting.id}')">
+                        <div class="flex items-center gap-3.5 min-w-0">
+                            <div class="w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-transform duration-200 ${meeting.expanded ? 'rotate-90 bg-amber-400 text-stone-950' : 'bg-stone-200/90 text-stone-700'}">
+                                <i class="fas fa-chevron-right text-xs"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <h2 class="text-base sm:text-lg font-bold text-stone-900 truncate">
+                                    ${meeting.title}
+                                </h2>
+                                <!-- Badge Pemetaan TPACK -->
+                                <div class="flex flex-wrap items-center gap-1.5 mt-1">
+                                    <span class="text-[11px] font-medium px-2 py-0.5 rounded-md bg-amber-100/80 text-amber-900 border border-amber-200/80">
+                                        <strong>Konten:</strong> ${tpack.knowledgeType}
+                                    </span>
+                                    <span class="text-[11px] font-medium px-2 py-0.5 rounded-md bg-white text-stone-700 border border-stone-200">
+                                        <strong>Teknologi:</strong> ${tpack.technology}
+                                    </span>
+                                    <span class="text-[11px] font-medium px-2 py-0.5 rounded-md bg-white text-stone-700 border border-stone-200">
+                                        <strong>Pedagogi:</strong> ${tpack.pedagogy}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        ${isGuru ? `
+                            <div class="flex items-center gap-1.5 shrink-0" onclick="event.stopPropagation()">
+                                <button onclick="openAddContentModal('${meeting.id}')" title="Tambah Konten ke Pertemuan Ini"
+                                    class="px-2.5 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-500 text-stone-950 text-xs font-bold flex items-center gap-1">
+                                    <i class="fas fa-plus"></i> <span class="hidden sm:inline">Tambah Isi</span>
+                                </button>
+                                <button onclick="openEditMeetingModal('${meeting.id}')" title="Ubah Judul Pertemuan"
+                                    class="p-1.5 rounded-lg bg-white border border-stone-300 text-stone-600 hover:text-amber-700">
+                                    <i class="fas fa-pen text-xs"></i>
+                                </button>
+                                <button onclick="deleteMeeting('${meeting.id}')" title="Hapus Pertemuan"
+                                    class="p-1.5 rounded-lg bg-white border border-stone-300 text-stone-600 hover:text-rose-600">
+                                    <i class="fas fa-trash text-xs"></i>
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- Isi Pertemuan Saat Dibuka -->
+                    ${meeting.expanded ? `
+                        <div class="p-4 sm:p-7 space-y-7 bg-white border-t border-stone-200">
+                            <!-- 1. PENDAHULUAN -->
+                            ${renderSectionBlock(meeting, 'pendahuluan', 'PENDAHULUAN', 'fa-compass', 'bg-amber-100 text-amber-800')}
+
+                            <!-- 2. MATERI PEMBELAJARAN -->
+                            ${renderSectionBlock(meeting, 'materi', 'MATERI PEMBELAJARAN', 'fa-book-open', 'bg-yellow-100 text-yellow-800')}
+
+                            <!-- 3. AKTIVITAS -->
+                            ${renderSectionBlock(meeting, 'aktivitas', 'AKTIVITAS PEMBELAJARAN', 'fa-tasks', 'bg-orange-100 text-orange-800')}
+
+                            <!-- 4. PROJECT -->
+                            ${renderSectionBlock(meeting, 'project', 'PROJECT & KARYA', 'fa-solar-panel', 'bg-stone-200 text-stone-800')}
+
+                            <!-- 5. EVALUASI -->
+                            ${renderSectionBlock(meeting, 'evaluasi', 'EVALUASI & KUIS', 'fa-clipboard-check', 'bg-rose-100 text-rose-800')}
+
+                            <!-- 6. AREA DISKUSI / FORUM DISKUSI MATERI -->
+                            ${renderSectionBlock(meeting, 'diskusi', 'AREA DISKUSI', 'fa-comment-dots', 'bg-emerald-100 text-emerald-800')}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function renderSectionBlock(meeting, sectionKey, sectionHeading, iconClass, badgeStyle) {
+            const section = meeting[sectionKey];
+            const isGuru = currentUser.role === 'guru';
+
+            return `
+                <div>
+                    <!-- Header Banner Minimalis Kuning Surya -->
+                    <div class="bg-amber-50 border-l-4 border-amber-400 text-stone-900 font-bold text-xs sm:text-sm uppercase tracking-wider px-4 py-2.5 rounded-r-lg flex items-center justify-between">
+                        <span>${sectionHeading}</span>
+                        ${isGuru ? `
+                            <button onclick="openAddContentModal('${meeting.id}', '${sectionKey}')"
+                                class="text-[11px] font-semibold bg-amber-400/30 hover:bg-amber-400/50 text-stone-900 px-2.5 py-0.5 rounded-md normal-case tracking-normal transition">
+                                + Tambah ${sectionHeading.split(' ')[0]}
+                            </button>
+                        ` : ''}
+                    </div>
+
+                    <!-- Deskripsi Pengantar Bagian (Dapat Diedit Guru) -->
+                    <div class="mt-3 mb-4 flex items-start justify-between gap-3 group">
+                        <p class="text-xs sm:text-sm text-stone-600 leading-relaxed flex-1">
+                            ${section.desc}
+                        </p>
+                        ${isGuru ? `
+                            <button onclick="openEditSectionDescModal('${meeting.id}', '${sectionKey}', '${sectionHeading}')"
+                                title="Edit Teks Pengantar ${sectionHeading}"
+                                class="shrink-0 px-2.5 py-1 rounded-lg border border-stone-200 bg-stone-50 hover:bg-amber-50 hover:border-amber-300 text-stone-600 hover:text-amber-800 text-[11px] font-semibold flex items-center gap-1 transition">
+                                <i class="fas fa-pen text-[10px]"></i>
+                                <span>Edit Teks</span>
+                            </button>
+                        ` : ''}
+                    </div>
+
+                    <!-- Daftar Item di Bagian Ini -->
+                    ${section.items.length === 0 ? `
+                        <div class="text-xs text-stone-400 italic py-2.5 px-3 bg-stone-50 rounded-xl border border-dashed border-stone-200">
+                            Belum ada item pada bagian ${sectionHeading.toLowerCase()}.
+                        </div>
+                    ` : `
+                        <div class="divide-y divide-stone-200 border-t border-b border-stone-200">
+                            ${section.items.map(item => renderSectionItemRow(meeting, sectionKey, item, iconClass, badgeStyle)).join('')}
+                        </div>
+                    `}
+                </div>
+            `;
+        }
+
+        function renderSectionItemRow(meeting, sectionKey, item, iconClass, badgeStyle) {
+            const isGuru = currentUser.role === 'guru';
+            const isDone = !!completedItems[`${currentUser.username}_${item.id}`];
+
+            // Metadata baris bawah judul
+            let metaText = '';
+            if (sectionKey === 'pendahuluan') metaText = item.subtitle || 'Informasi Pendahuluan';
+            if (sectionKey === 'materi') metaText = `${item.fileSize || 'Materi Digital'} · ${item.uploadedAt || 'Tersedia'}`;
+            if (sectionKey === 'aktivitas') metaText = item.deadline || 'Aktivitas Mandiri';
+            if (sectionKey === 'project') metaText = item.deadline || 'Penugasan Project';
+            if (sectionKey === 'evaluasi') metaText = `Durasi: ${item.duration || '15 Menit'} · KKM: ${item.passingScore || 75} · ${item.questions?.length || 0} Soal`;
+            if (sectionKey === 'diskusi') metaText = `${item.posts?.length || 0} Tanggapan Diskusi`;
+
+            return `
+                <div class="py-3.5 px-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-amber-50/40 transition">
+                    <div class="flex items-start gap-3.5 cursor-pointer group flex-1"
+                         onclick="openItemInteraction('${meeting.id}', '${sectionKey}', '${item.id}')">
+                        <!-- Ikon Bulat / Kotak di Kiri -->
+                        <div class="w-9 h-9 rounded-xl ${badgeStyle} flex items-center justify-center shrink-0 mt-0.5">
+                            <i class="fas ${iconClass} text-sm"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="text-sm font-semibold text-stone-800 group-hover:text-amber-700 transition">
+                                    ${item.title}
+                                </span>
+                                ${item.externalUrl ? `
+                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-sm bg-sky-100 text-sky-800">
+                                        <i class="fas fa-link text-[9px]"></i> Link
+                                    </span>
+                                ` : ''}
+                                ${item.fileName ? `
+                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-sm bg-emerald-100 text-emerald-800">
+                                        <i class="fas fa-file-alt text-[9px]"></i> ${item.fileName}
+                                    </span>
+                                ` : ''}
+                                ${!item.externalUrl && !item.fileName && sectionKey === 'materi' && item.fileType ? `
+                                    <span class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-sm bg-amber-100 text-amber-800">
+                                        ${item.fileType}
+                                    </span>
+                                ` : ''}
+                            </div>
+                            <div class="text-xs text-stone-500 mt-1">
+                                ${sectionKey === 'diskusi' ? item.prompt : metaText}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tombol Status Kanan -->
+                    <div class="flex items-center gap-2 self-end sm:self-center shrink-0">
+                        <button onclick="openItemInteraction('${meeting.id}', '${sectionKey}', '${item.id}')"
+                            class="px-3.5 py-1 rounded-full text-xs font-medium border transition ${
+                                isDone
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300 font-semibold'
+                                    : 'bg-white text-stone-700 border-stone-300 hover:border-amber-400 hover:bg-amber-50'
+                            }">
+                            ${isDone ? '<i class="fas fa-check mr-1"></i> Selesai' : 'Mulai / To do'}
+                        </button>
+
+                        ${isGuru ? `
+                            <button onclick="openEditItemModal('${meeting.id}', '${sectionKey}', '${item.id}')" title="Edit Item"
+                                class="p-1.5 text-stone-400 hover:text-amber-700 rounded-lg hover:bg-amber-50">
+                                <i class="fas fa-edit text-xs"></i>
+                            </button>
+                            <button onclick="deleteSectionItem('${meeting.id}', '${sectionKey}', '${item.id}')" title="Hapus Item"
+                                class="p-1.5 text-stone-400 hover:text-rose-600 rounded-lg hover:bg-rose-50">
+                                <i class="fas fa-trash-alt text-xs"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * ============================================================================
+         * 6. MODAL INTERAKSI SISWA & GURU (MATERI, AKTIVITAS, PROJECT, KUIS, FORUM)
+         * ============================================================================
+         */
+        function openItemInteraction(meetingId, sectionKey, itemId) {
+            const meeting = meetings.find(m => m.id === meetingId);
+            if (!meeting) return;
+            const item = meeting[sectionKey].items.find(i => i.id === itemId);
+            if (!item) return;
+
+            if (sectionKey === 'pendahuluan' || sectionKey === 'materi') {
+                renderMaterialViewerModal(meeting, sectionKey, item);
+            } else if (sectionKey === 'aktivitas' || sectionKey === 'project') {
+                renderSubmissionModal(meeting, sectionKey, item);
+            } else if (sectionKey === 'evaluasi') {
+                renderQuizModal(meeting, item);
+            } else if (sectionKey === 'diskusi') {
+                renderDiscussionModal(meeting, item);
+            }
+        }
+
+        // A. Modal Pendahuluan & Materi Pembelajaran (Mendukung Teks, Link Eksternal, & File Lampiran)
+        function renderMaterialViewerModal(meeting, sectionKey, item) {
+            const label = sectionKey === 'pendahuluan' ? 'Pendahuluan' : 'Materi Pembelajaran';
+            const hasLink = Boolean(item.externalUrl && item.externalUrl.trim());
+            const hasFile = Boolean(item.fileName && item.fileDataUrl);
+            const hasText = Boolean(item.content && item.content.trim());
+
+            document.getElementById('modal-root').innerHTML = `
+                <div class="fixed inset-0 bg-stone-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden">
+                        <div class="bg-stone-900 text-white px-6 py-4 flex items-center justify-between border-b-2 border-amber-400">
+                            <div>
+                                <div class="text-[11px] uppercase tracking-wider text-amber-300 font-semibold">${meeting.title} · ${label}</div>
+                                <h3 class="text-base sm:text-lg font-bold mt-0.5">${item.title}</h3>
+                            </div>
+                            <button onclick="closeModal()" class="text-white/80 hover:text-white p-1.5"><i class="fas fa-times text-lg"></i></button>
+                        </div>
+
+                        <div class="p-6 overflow-y-auto space-y-4 flex-1">
+                            ${hasLink ? `
+                                <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div class="min-w-0">
+                                        <div class="text-[11px] font-bold uppercase tracking-wider text-amber-800 mb-0.5">
+                                            <i class="fas fa-external-link-alt mr-1"></i> Tautan Materi Eksternal
+                                        </div>
+                                        <div class="text-xs text-stone-600 truncate">${item.externalUrl}</div>
+                                    </div>
+                                    <a href="${item.externalUrl}" target="_blank" rel="noopener noreferrer"
+                                        class="shrink-0 px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-stone-950 text-xs font-bold inline-flex items-center justify-center gap-1.5 shadow-2xs transition">
+                                        <i class="fas fa-up-right-from-square"></i> Buka Tautan
+                                    </a>
+                                </div>
+                            ` : ''}
+
+                            ${hasFile ? `
+                                <div class="p-4 rounded-xl bg-emerald-50/80 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                                            <i class="fas fa-file-arrow-down text-base"></i>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <div class="text-xs font-bold text-stone-900 truncate">${item.fileName}</div>
+                                            <div class="text-[11px] text-stone-500">${item.fileSize || 'Dokumen Lampiran'}</div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2 shrink-0">
+                                        <a href="${item.fileDataUrl}" target="_blank" rel="noopener noreferrer"
+                                            class="px-3 py-2 rounded-xl bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-100 text-xs font-semibold transition">
+                                            Pratinjau
+                                        </a>
+                                        <a href="${item.fileDataUrl}" download="${item.fileName}"
+                                            class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1.5 transition">
+                                            <i class="fas fa-download"></i> Unduh File
+                                        </a>
+                                    </div>
+                                </div>
+                            ` : ''}
+
+                            ${hasText ? `
+                                <div class="p-4 rounded-xl bg-stone-50 border border-stone-200 text-sm text-stone-700 whitespace-pre-line leading-relaxed">
+                                    ${item.content}
+                                </div>
+                            ` : (!hasLink && !hasFile ? `
+                                <div class="p-4 rounded-xl bg-stone-50 border border-stone-200 text-sm text-stone-500 italic">
+                                    Konten materi pembelajaran siap dipelajari.
+                                </div>
+                            ` : '')}
+                        </div>
+
+                        <div class="px-6 py-4 bg-stone-50 border-t border-stone-200 flex flex-wrap items-center justify-between gap-3">
+                            <span class="text-xs text-stone-500">
+                                <i class="fas fa-table text-emerald-600 mr-1"></i> Progres otomatis tercatat ke Google Spreadsheet
+                            </span>
+                            <div class="flex items-center gap-2">
+                                <button onclick="closeModal()" class="px-4 py-2 rounded-xl border border-stone-300 text-stone-700 text-xs font-semibold hover:bg-stone-100">
+                                    Tutup
+                                </button>
+                                <button onclick="completeMaterialItem('${meeting.id}', '${sectionKey}', '${item.id}')"
+                                    class="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-stone-950 text-xs font-bold flex items-center gap-1.5 shadow-xs">
+                                    <i class="fas fa-check-circle"></i> Tandai Selesai Dipelajari
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function completeMaterialItem(meetingId, sectionKey, itemId) {
+            const meeting = meetings.find(m => m.id === meetingId);
+            const item = meeting[sectionKey].items.find(i => i.id === itemId);
+            recordAndSyncToGoogleSheets({
+                meetingTitle: meeting.title,
+                category: sectionKey === 'pendahuluan' ? 'Pendahuluan' : 'Materi',
+                itemTitle: item.title,
+                scoreOrStatus: 'Selesai Dibaca',
+                detail: `Menyelesaikan ${item.title}`,
+                itemId: item.id
+            });
+            closeModal();
+        }
+
+        // B. Modal Aktivitas & Project Submission
+        function renderSubmissionModal(meeting, sectionKey, item) {
+            const isProject = sectionKey === 'project';
+            document.getElementById('modal-root').innerHTML = `
+                <div class="fixed inset-0 bg-stone-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden">
+                        <div class="bg-stone-900 text-white px-6 py-4 flex items-center justify-between border-b-2 border-amber-400">
+                            <div>
+                                <div class="text-[11px] uppercase tracking-wider text-amber-300 font-semibold">
+                                    ${meeting.title} · ${isProject ? 'Project Pembelajaran' : 'Aktivitas Siswa'}
+                                </div>
+                                <h3 class="text-base sm:text-lg font-bold mt-0.5">${item.title}</h3>
+                            </div>
+                            <button onclick="closeModal()" class="text-white/80 hover:text-white p-1.5"><i class="fas fa-times text-lg"></i></button>
+                        </div>
+
+                        <form onsubmit="submitActivityOrProject(event, '${meeting.id}', '${sectionKey}', '${item.id}')" class="p-6 overflow-y-auto space-y-4 flex-1">
+                            <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-sm text-stone-800">
+                                <div class="font-bold text-amber-900 text-xs uppercase mb-1">Instruksi Tugas:</div>
+                                <p class="leading-relaxed">${isProject ? item.brief : item.prompt}</p>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 mb-1.5">
+                                    ${isProject ? 'Deskripsi Karya / Hasil Simulasi / Perhitungan' : 'Jawaban / Hasil Analisis Aktivitas Anda'} *
+                                </label>
+                                <textarea id="submission-text" rows="4" required placeholder="Tuliskan jawaban atau hasil eksplorasi Anda di sini..."
+                                    class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 focus:border-amber-500 outline-none text-sm"></textarea>
+                            </div>
+
+                            ${isProject ? `
+                                <div>
+                                    <label class="block text-xs font-bold text-stone-700 mb-1.5">
+                                        Tautan Karya (Canva / Google Sheets / Google Drive)
+                                    </label>
+                                    <input id="submission-link" type="url" placeholder="https://docs.google.com/spreadsheets/..."
+                                        class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 focus:border-amber-500 outline-none text-sm">
+                                </div>
+                            ` : ''}
+
+                            <div class="pt-2 flex items-center justify-end gap-2">
+                                <button type="button" onclick="closeModal()" class="px-4 py-2.5 rounded-xl border border-stone-300 text-stone-700 text-xs font-semibold hover:bg-stone-100">
+                                    Batal
+                                </button>
+                                <button type="submit" class="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-stone-950 text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                                    <i class="fas fa-paper-plane"></i> Kirim & Simpan ke Google Sheets
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        function submitActivityOrProject(e, meetingId, sectionKey, itemId) {
+            e.preventDefault();
+            const meeting = meetings.find(m => m.id === meetingId);
+            const item = meeting[sectionKey].items.find(i => i.id === itemId);
+            const text = document.getElementById('submission-text').value.trim();
+            const linkEl = document.getElementById('submission-link');
+            const linkVal = linkEl && linkEl.value.trim() ? ` | Link: ${linkEl.value.trim()}` : '';
+
+            recordAndSyncToGoogleSheets({
+                meetingTitle: meeting.title,
+                category: sectionKey === 'project' ? 'Project' : 'Aktivitas',
+                itemTitle: item.title,
+                scoreOrStatus: 'Terkumpul',
+                detail: text + linkVal,
+                itemId: item.id
+            });
+            closeModal();
+        }
+
+        // C. Modal Evaluasi (Kuis Pilihan Ganda dengan Penilaian Otomatis)
+        function renderQuizModal(meeting, item) {
+            const questions = item.questions || [];
+            document.getElementById('modal-root').innerHTML = `
+                <div class="fixed inset-0 bg-stone-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden">
+                        <div class="bg-stone-900 text-white px-6 py-4 flex items-center justify-between border-b-2 border-amber-400">
+                            <div>
+                                <div class="text-[11px] uppercase tracking-wider text-amber-300 font-semibold">${meeting.title} · Evaluasi</div>
+                                <h3 class="text-base sm:text-lg font-bold mt-0.5">${item.title}</h3>
+                            </div>
+                            <button onclick="closeModal()" class="text-white/80 hover:text-white p-1.5"><i class="fas fa-times text-lg"></i></button>
+                        </div>
+
+                        ${questions.length === 0 ? `
+                            <div class="p-8 text-center text-stone-500 text-sm">
+                                Belum ada butir soal evaluasi pada kuis ini. Guru dapat menambahkan soal melalui tombol Edit.
+                            </div>
+                        ` : `
+                            <form onsubmit="submitQuizEvaluation(event, '${meeting.id}', '${item.id}')" class="p-6 overflow-y-auto space-y-6 flex-1">
+                                <div class="flex items-center justify-between text-xs bg-amber-50 text-amber-900 border border-amber-200 px-4 py-2.5 rounded-xl font-medium">
+                                    <span><i class="fas fa-info-circle mr-1 text-amber-600"></i> Jawab seluruh pertanyaan di bawah ini.</span>
+                                    <span>KKM: <strong>${item.passingScore || 75}</strong></span>
+                                </div>
+
+                                ${questions.map((qObj, qIdx) => `
+                                    <div class="p-4 rounded-xl border border-stone-200 bg-stone-50/70 space-y-3">
+                                        <div class="font-semibold text-sm text-stone-800">
+                                            ${qIdx + 1}. ${qObj.q}
+                                        </div>
+                                        <div class="space-y-2">
+                                            ${qObj.options.map((opt, oIdx) => `
+                                                <label class="flex items-center gap-3 p-2.5 rounded-lg bg-white border border-stone-200 hover:border-amber-400 cursor-pointer text-xs sm:text-sm">
+                                                    <input type="radio" name="quiz_q_${qIdx}" value="${oIdx}" required class="accent-amber-500">
+                                                    <span>${opt}</span>
+                                                </label>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                `).join('')}
+
+                                <div class="pt-2 flex items-center justify-end gap-2">
+                                    <button type="button" onclick="closeModal()" class="px-4 py-2.5 rounded-xl border border-stone-300 text-stone-700 text-xs font-semibold">
+                                        Batal
+                                    </button>
+                                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-stone-950 text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                                        <i class="fas fa-check-double"></i> Selesai & Kirim Nilai ke Google Sheets
+                                    </button>
+                                </div>
+                            </form>
+                        `}
+                    </div>
+                </div>
+            `;
+        }
+
+        function submitQuizEvaluation(e, meetingId, itemId) {
+            e.preventDefault();
+            const meeting = meetings.find(m => m.id === meetingId);
+            const item = meeting.evaluasi.items.find(i => i.id === itemId);
+            const questions = item.questions || [];
+
+            let correct = 0;
+            questions.forEach((qObj, idx) => {
+                const selected = document.querySelector(`input[name="quiz_q_${idx}"]:checked`);
+                if (selected && parseInt(selected.value, 10) === qObj.answerIndex) {
+                    correct++;
+                }
+            });
+
+            const score = Math.round((correct / questions.length) * 100);
+            const statusText = score >= (item.passingScore || 75) ? 'Lulus' : 'Perlu Remedial';
+
+            recordAndSyncToGoogleSheets({
+                meetingTitle: meeting.title,
+                category: 'Evaluasi',
+                itemTitle: item.title,
+                scoreOrStatus: `Skor: ${score} (${statusText})`,
+                detail: `Benar ${correct} dari ${questions.length} soal.`,
+                itemId: item.id
+            });
+            closeModal();
+        }
+
+        // D. Modal Forum Diskusi Materi
+        function openDiscussionModal(meeting, item) {
+            renderDiscussionModal(meeting, item);
+        }
+
+        function renderDiscussionModal(meeting, item) {
+            const posts = item.posts || [];
+            document.getElementById('modal-root').innerHTML = `
+                <div class="fixed inset-0 bg-stone-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden">
+                        <div class="bg-stone-900 text-white px-6 py-4 flex items-center justify-between border-b-2 border-amber-400">
+                            <div>
+                                <div class="text-[11px] uppercase tracking-wider text-amber-300 font-semibold">${meeting.title} · Forum Diskusi</div>
+                                <h3 class="text-base sm:text-lg font-bold mt-0.5">${item.title}</h3>
+                            </div>
+                            <button onclick="closeModal()" class="text-white/80 hover:text-white p-1.5"><i class="fas fa-times text-lg"></i></button>
+                        </div>
+
+                        <div class="p-6 overflow-y-auto space-y-4 flex-1">
+                            <!-- Pemantik Diskusi -->
+                            <div class="p-4 rounded-xl bg-amber-50/80 border border-amber-200 text-sm text-stone-800">
+                                <div class="font-bold text-amber-900 text-xs uppercase mb-1">Topik Pemantik Diskusi:</div>
+                                <p>${item.prompt}</p>
+                            </div>
+
+                            <!-- Daftar Komentar -->
+                            <div class="space-y-3">
+                                ${posts.length === 0 ? `
+                                    <p class="text-xs text-stone-400 text-center py-4">Belum ada tanggapan diskusi. Jadilah yang pertama berkomentar!</p>
+                                ` : posts.map(p => `
+                                    <div class="p-3.5 rounded-xl border ${p.role === 'guru' ? 'bg-amber-50/50 border-amber-200' : 'bg-white border-stone-200'}">
+                                        <div class="flex items-center justify-between mb-1.5">
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-xs font-bold text-stone-800">${p.author}</span>
+                                                <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold ${p.role === 'guru' ? 'bg-amber-400 text-stone-950' : 'bg-stone-100 text-stone-600'}">
+                                                    ${p.role === 'guru' ? 'Guru' : 'Siswa'}
+                                                </span>
+                                            </div>
+                                            <span class="text-[11px] text-stone-400">${p.time}</span>
+                                        </div>
+                                        <p class="text-xs sm:text-sm text-stone-700 leading-relaxed">${p.text}</p>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Input Tanggapan Baru -->
+                        <form onsubmit="submitDiscussionReply(event, '${meeting.id}', '${item.id}')" class="p-4 bg-stone-50 border-t border-stone-200 flex gap-2">
+                            <input id="forum-reply-input" type="text" required placeholder="Tulis tanggapan atau pertanyaan diskusi Anda..."
+                                class="flex-1 px-3.5 py-2.5 rounded-xl border border-stone-300 focus:border-amber-500 outline-none text-sm bg-white">
+                            <button type="submit" class="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-stone-950 text-xs font-bold shrink-0">
+                                <i class="fas fa-paper-plane mr-1"></i> Kirim
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        function submitDiscussionReply(e, meetingId, itemId) {
+            e.preventDefault();
+            const meeting = meetings.find(m => m.id === meetingId);
+            const item = meeting.diskusi.items.find(i => i.id === itemId);
+            const text = document.getElementById('forum-reply-input').value.trim();
+            if (!text) return;
+
+            item.posts.push({
+                id: 'post-' + Date.now(),
+                author: currentUser.name,
+                role: currentUser.role,
+                time: 'Baru saja',
+                text
+            });
+
+            if (currentUser.role === 'siswa') {
+                recordAndSyncToGoogleSheets({
+                    meetingTitle: meeting.title,
+                    category: 'Diskusi',
+                    itemTitle: item.title,
+                    scoreOrStatus: 'Aktif Berdiskusi',
+                    detail: text,
+                    itemId: item.id
+                });
+            } else {
+                showToast('Tanggapan guru ditambahkan ke forum.', 'success');
+            }
+
+            renderDiscussionModal(meeting, item);
+            renderApp();
+        }
+
+        /**
+         * ============================================================================
+         * 7. HALAMAN KHUSUS TAB FORUM DISKUSI TERPADU
+         * ============================================================================
+         */
+        function renderForumTab() {
+            return `
+                <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+                    <div class="bg-white rounded-2xl border border-stone-200 p-6 mb-6 shadow-2xs relative overflow-hidden">
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-amber-400"></div>
+                        <h1 class="text-xl sm:text-2xl font-extrabold text-stone-900 flex items-center gap-2.5">
+                            <i class="fas fa-comments text-amber-500"></i>
+                            Forum Diskusi Materi PLTS
+                        </h1>
+                        <p class="text-sm text-stone-600 mt-1">
+                            Ruang kolaborasi tanya jawab antara Guru dan Siswa. Setiap partisipasi siswa otomatis tercatat ke rekap Google Sheets.
+                        </p>
+                    </div>
+
+                    <div class="space-y-4">
+                        ${meetings.map(m => {
+                            const forums = m.diskusi.items || [];
+                            if (forums.length === 0) return '';
+                            return forums.map(f => `
+                                <div class="bg-white rounded-2xl border border-stone-200 p-5 shadow-2xs">
+                                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-stone-100">
+                                        <div>
+                                            <span class="text-[11px] font-bold uppercase text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-full">
+                                                ${m.title}
+                                            </span>
+                                            <h3 class="text-base font-bold text-stone-800 mt-1.5">${f.title}</h3>
+                                        </div>
+                                        <button onclick="openItemInteraction('${m.id}', 'diskusi', '${f.id}')"
+                                            class="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-stone-950 text-xs font-bold self-start sm:self-center">
+                                            Buka Ruang Diskusi (${f.posts.length})
+                                        </button>
+                                    </div>
+                                    <p class="text-sm text-stone-600 mt-3">${f.prompt}</p>
+                                </div>
+                            `).join('');
+                        }).join('')}
+                    </div>
+                </main>
+            `;
+        }
+
+        /**
+         * ============================================================================
+         * 8. DASHBOARD GURU: MODIFIKASI KONTEN LMS (TAMBAH / EDIT / HAPUS)
+         * ============================================================================
+         */
+        function openEditCourseModal() {
+            document.getElementById('modal-root').innerHTML = `
+                <div class="fixed inset-0 bg-stone-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-stone-200">
+                        <h3 class="text-lg font-bold text-stone-800 mb-4">Edit Informasi Mata Pelajaran</h3>
+                        <form onsubmit="saveCourseInfo(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 mb-1">Kode Mata Pelajaran</label>
+                                <input id="edit-course-code" type="text" value="${courseInfo.code}" required
+                                    class="w-full px-3.5 py-2 rounded-xl border border-stone-300 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 mb-1">Nama Mata Pelajaran & Topik</label>
+                                <input id="edit-course-title" type="text" value="${courseInfo.title}" required
+                                    class="w-full px-3.5 py-2 rounded-xl border border-stone-300 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 mb-1">Deskripsi Pengantar</label>
+                                <textarea id="edit-course-desc" rows="3" required
+                                    class="w-full px-3.5 py-2 rounded-xl border border-stone-300 text-sm">${courseInfo.description}</textarea>
+                            </div>
+                            <div class="flex justify-end gap-2 pt-2">
+                                <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl border border-stone-300 text-xs font-semibold">Batal</button>
+                                <button type="submit" class="px-4 py-2 rounded-xl bg-amber-400 text-stone-950 text-xs font-bold">Simpan Perubahan</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        function saveCourseInfo(e) {
+            e.preventDefault();
+            courseInfo.code = document.getElementById('edit-course-code').value.trim();
+            courseInfo.title = document.getElementById('edit-course-title').value.trim();
+            courseInfo.description = document.getElementById('edit-course-desc').value.trim();
+            closeModal();
+            showToast('Informasi kursus berhasil diperbarui!', 'success');
+            renderApp();
+        }
+
+        function openAddMeetingModal() {
+            const nextNum = meetings.length + 1;
+            document.getElementById('modal-root').innerHTML = `
+                <div class="fixed inset-0 bg-stone-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-stone-200">
+                        <h3 class="text-lg font-bold text-stone-800 mb-4">Tambah Topik Pertemuan Baru (TPACK)</h3>
+                        <form onsubmit="saveNewMeeting(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 mb-1">Judul Pertemuan</label>
+                                <input id="new-meeting-title" type="text" value="Pertemuan ${nextNum}: " required
+                                    class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm">
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-stone-600 mb-1">Tipe Konten</label>
+                                    <input id="new-tpack-knowledge" type="text" value="Konsep"
+                                        class="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-stone-600 mb-1">Teknologi</label>
+                                    <input id="new-tpack-tech" type="text" value="Canva / Video"
+                                        class="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-stone-600 mb-1">Pedagogi</label>
+                                    <input id="new-tpack-pedagogy" type="text" value="Diskusi"
+                                        class="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs">
+                                </div>
+                            </div>
+                            <div class="flex justify-end gap-2 pt-2">
+                                <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl border border-stone-300 text-xs font-semibold">Batal</button>
+                                <button type="submit" class="px-4 py-2 rounded-xl bg-amber-400 text-stone-950 text-xs font-bold">Buat Pertemuan</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        function saveNewMeeting(e) {
+            e.preventDefault();
+            const title = document.getElementById('new-meeting-title').value.trim();
+            const knowledgeType = document.getElementById('new-tpack-knowledge').value.trim() || 'Konsep';
+            const technology = document.getElementById('new-tpack-tech').value.trim() || 'Media Digital';
+            const pedagogy = document.getElementById('new-tpack-pedagogy').value.trim() || 'Diskusi';
+
+            meetings.push({
+                id: 'm-' + Date.now(),
+                title,
+                tpack: { knowledgeType, technology, pedagogy },
+                expanded: true,
+                pendahuluan: { desc: `Pemetaan TPACK — Tipe Konten: ${knowledgeType} | Teknologi: ${technology} | Pedagogi: ${pedagogy}.`, items: [] },
+                materi: { desc: 'Silakan akses setiap materi pembelajaran yang telah disiapkan secara berurutan.', items: [] },
+                aktivitas: { desc: 'Kerjakan aktivitas belajar berikut untuk memperdalam pemahaman.', items: [] },
+                project: { desc: 'Tugas berbasis proyek untuk menghasilkan karya terapan PLTS.', items: [] },
+                evaluasi: { desc: 'Evaluasi pemahaman materi pertemuan ini.', items: [] },
+                diskusi: { desc: 'Ruang diskusi interaktif antara guru dan siswa.', items: [] }
+            });
+            closeModal();
+            showToast('Pertemuan baru berhasil ditambahkan!', 'success');
+            renderApp();
+        }
+
+        function openEditMeetingModal(meetingId) {
+            const m = meetings.find(x => x.id === meetingId);
+            const tpack = m.tpack || { knowledgeType: 'Konsep', technology: 'Media Digital', pedagogy: 'Diskusi' };
+            document.getElementById('modal-root').innerHTML = `
+                <div class="fixed inset-0 bg-stone-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-stone-200">
+                        <h3 class="text-lg font-bold text-stone-800 mb-4">Edit Topik Pertemuan & Pemetaan TPACK</h3>
+                        <form onsubmit="updateMeetingTitle(event, '${meetingId}')" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 mb-1">Judul Pertemuan</label>
+                                <input id="edit-meeting-title" type="text" value="${m.title}" required
+                                    class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm">
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-stone-600 mb-1">Tipe Konten</label>
+                                    <input id="edit-tpack-knowledge" type="text" value="${tpack.knowledgeType}"
+                                        class="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-stone-600 mb-1">Teknologi</label>
+                                    <input id="edit-tpack-tech" type="text" value="${tpack.technology}"
+                                        class="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-stone-600 mb-1">Pedagogi</label>
+                                    <input id="edit-tpack-pedagogy" type="text" value="${tpack.pedagogy}"
+                                        class="w-full px-3 py-2 rounded-xl border border-stone-300 text-xs">
+                                </div>
+                            </div>
+                            <div class="flex justify-end gap-2 pt-2">
+                                <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl border border-stone-300 text-xs font-semibold">Batal</button>
+                                <button type="submit" class="px-4 py-2 rounded-xl bg-amber-400 text-stone-950 text-xs font-bold">Simpan</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateMeetingTitle(e, meetingId) {
+            e.preventDefault();
+            const m = meetings.find(x => x.id === meetingId);
+            m.title = document.getElementById('edit-meeting-title').value.trim();
+            m.tpack = {
+                knowledgeType: document.getElementById('edit-tpack-knowledge').value.trim() || 'Konsep',
+                technology: document.getElementById('edit-tpack-tech').value.trim() || 'Media Digital',
+                pedagogy: document.getElementById('edit-tpack-pedagogy').value.trim() || 'Diskusi'
+            };
+            closeModal();
+            showToast('Judul pertemuan & TPACK diperbarui!', 'success');
+            renderApp();
+        }
+
+        // Modal Edit Teks Pengantar Setiap Bagian (Pendahuluan, Materi, Aktivitas, Project, Evaluasi, Diskusi)
+        function openEditSectionDescModal(meetingId, sectionKey, sectionHeading) {
+            const meeting = meetings.find(m => m.id === meetingId);
+            if (!meeting) return;
+            const currentDesc = meeting[sectionKey].desc || '';
+
+            document.getElementById('modal-root').innerHTML = `
+                <div class="fixed inset-0 bg-stone-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-stone-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <div class="text-[11px] font-bold uppercase tracking-wider text-amber-700">${meeting.title}</div>
+                                <h3 class="text-base font-bold text-stone-900">Edit Teks Pengantar: ${sectionHeading}</h3>
+                            </div>
+                            <button onclick="closeModal()" class="text-stone-400 hover:text-stone-600 p-1"><i class="fas fa-times"></i></button>
+                        </div>
+                        <form onsubmit="saveSectionDesc(event, '${meetingId}', '${sectionKey}')" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 mb-1.5">Teks Keterangan / Pemetaan TPACK</label>
+                                <textarea id="edit-section-desc-input" rows="4" required
+                                    class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 focus:border-amber-500 outline-none text-sm leading-relaxed">${currentDesc}</textarea>
+                            </div>
+                            <div class="flex justify-end gap-2 pt-1">
+                                <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl border border-stone-300 text-xs font-semibold">Batal</button>
+                                <button type="submit" class="px-5 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-stone-950 text-xs font-bold">Simpan Teks</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        function saveSectionDesc(e, meetingId, sectionKey) {
+            e.preventDefault();
+            const meeting = meetings.find(m => m.id === meetingId);
+            if (!meeting) return;
+            meeting[sectionKey].desc = document.getElementById('edit-section-desc-input').value.trim();
+            closeModal();
+            showToast('Teks pengantar bagian berhasil diperbarui!', 'success');
+            renderApp();
+        }
+
+        function deleteMeeting(meetingId) {
+            meetings = meetings.filter(m => m.id !== meetingId);
+            showToast('Pertemuan dihapus dari daftar.', 'info');
+            renderApp();
+        }
+
+        function deleteSectionItem(meetingId, sectionKey, itemId) {
+            const m = meetings.find(x => x.id === meetingId);
+            if (!m) return;
+            m[sectionKey].items = m[sectionKey].items.filter(i => i.id !== itemId);
+            showToast('Item berhasil dihapus.', 'info');
+            renderApp();
+        }
+
+        function formatFileSize(bytes) {
+            if (!bytes || bytes === 0) return '0 KB';
+            const kb = bytes / 1024;
+            if (kb < 1024) return `${Math.round(kb)} KB`;
+            return `${(kb / 1024).toFixed(1)} MB`;
+        }
+
+        // Modal Tambah Konten ke Bagian (Mendukung Teks, Link Eksternal, dan Unggah File)
+        function openAddContentModal(meetingId, defaultSection = 'materi') {
+            const isResourceSection = defaultSection === 'materi' || defaultSection === 'pendahuluan';
+            document.getElementById('modal-root').innerHTML = `
+                <div class="fixed inset-0 bg-stone-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-2xl max-w-xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden">
+                        <div class="bg-stone-900 text-white px-6 py-4 flex items-center justify-between border-b-2 border-amber-400">
+                            <h3 class="text-base font-bold">Tambah Konten Pembelajaran (Mode Guru)</h3>
+                            <button onclick="closeModal()" class="text-white/80 hover:text-white"><i class="fas fa-times"></i></button>
+                        </div>
+
+                        <form onsubmit="saveNewSectionContent(event, '${meetingId}')" class="p-6 overflow-y-auto space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 mb-1">Pilih Bagian LMS *</label>
+                                <select id="content-section-select" onchange="toggleSectionFieldsInAddModal()"
+                                    class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm bg-white">
+                                    <option value="pendahuluan" ${defaultSection === 'pendahuluan' ? 'selected' : ''}>Pendahuluan</option>
+                                    <option value="materi" ${defaultSection === 'materi' ? 'selected' : ''}>Materi Pembelajaran</option>
+                                    <option value="aktivitas" ${defaultSection === 'aktivitas' ? 'selected' : ''}>Aktivitas Siswa</option>
+                                    <option value="project" ${defaultSection === 'project' ? 'selected' : ''}>Project Pembelajaran</option>
+                                    <option value="evaluasi" ${defaultSection === 'evaluasi' ? 'selected' : ''}>Evaluasi / Kuis</option>
+                                    <option value="diskusi" ${defaultSection === 'diskusi' ? 'selected' : ''}>Forum Diskusi Materi</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 mb-1">Judul Item *</label>
+                                <input id="content-item-title" type="text" required placeholder="Contoh: Slide Canva PLTS / Modul PDF / Simulasi PVWatts..."
+                                    class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm">
+                            </div>
+
+                            <!-- Input Link & File Khusus Materi / Pendahuluan -->
+                            <div id="resource-link-file-fields" class="${isResourceSection ? '' : 'hidden'} p-4 rounded-xl bg-amber-50/70 border border-amber-200 space-y-3">
+                                <div class="text-xs font-bold text-amber-900 uppercase flex items-center gap-1.5">
+                                    <i class="fas fa-paperclip text-amber-600"></i> Sumber Materi (Link Eksternal / Unggah File)
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-stone-700 mb-1">Tautan / Link (Canva, YouTube, Google Drive, PVWatts, dll.)</label>
+                                    <input id="content-item-url" type="url" placeholder="https://www.canva.com/... atau https://youtu.be/..."
+                                        class="w-full px-3.5 py-2 rounded-xl border border-stone-300 text-xs sm:text-sm bg-white">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-stone-700 mb-1">Unggah File Materi (PDF, PPT, Word, Gambar, ZIP)</label>
+                                    <input id="content-item-file" type="file"
+                                        accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.png,.jpg,.jpeg,.mp4"
+                                        class="w-full text-xs text-stone-600 file:mr-3 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-400 file:text-stone-950 hover:file:bg-amber-500 bg-white border border-stone-300 rounded-xl p-1.5">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 mb-1">
+                                    <span id="content-body-label">${isResourceSection ? 'Catatan / Ringkasan Tulisan (Opsional jika sudah ada Link/File)' : 'Instruksi Tugas / Topik Diskusi *'}</span>
+                                </label>
+                                <textarea id="content-item-body" rows="3" placeholder="Tuliskan uraian materi, catatan tambahan, atau instruksi aktivitas..."
+                                    class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 text-sm"></textarea>
+                            </div>
+
+                            <!-- Field Tambahan Khusus Evaluasi (1 Soal Cepat) -->
+                            <div id="quiz-builder-fields" class="${defaultSection === 'evaluasi' ? '' : 'hidden'} p-4 rounded-xl bg-amber-50/70 border border-amber-200 space-y-3">
+                                <div class="text-xs font-bold text-amber-900 uppercase">Butir Soal Evaluasi (Pilihan Ganda)</div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-stone-700 mb-1">Pertanyaan Kuis</label>
+                                    <input id="quiz-q-text" type="text" placeholder="Tuliskan pertanyaan kuis..."
+                                        class="w-full px-3 py-2 rounded-lg border border-stone-300 text-xs bg-white">
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <input id="quiz-opt-0" type="text" placeholder="Pilihan A" class="px-3 py-1.5 rounded-lg border border-stone-300 text-xs bg-white">
+                                    <input id="quiz-opt-1" type="text" placeholder="Pilihan B" class="px-3 py-1.5 rounded-lg border border-stone-300 text-xs bg-white">
+                                    <input id="quiz-opt-2" type="text" placeholder="Pilihan C" class="px-3 py-1.5 rounded-lg border border-stone-300 text-xs bg-white">
+                                    <input id="quiz-opt-3" type="text" placeholder="Pilihan D" class="px-3 py-1.5 rounded-lg border border-stone-300 text-xs bg-white">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-stone-700 mb-1">Kunci Jawaban Benar</label>
+                                    <select id="quiz-correct-idx" class="px-3 py-1.5 rounded-lg border border-stone-300 text-xs bg-white">
+                                        <option value="0">Pilihan A</option>
+                                        <option value="1">Pilihan B</option>
+                                        <option value="2">Pilihan C</option>
+                                        <option value="3">Pilihan D</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="flex justify-end gap-2 pt-2">
+                                <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl border border-stone-300 text-xs font-semibold">Batal</button>
+                                <button type="submit" class="px-5 py-2 rounded-xl bg-amber-400 text-stone-950 text-xs font-bold">Simpan Konten</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleSectionFieldsInAddModal() {
+            const val = document.getElementById('content-section-select').value;
+            const quizBox = document.getElementById('quiz-builder-fields');
+            const resBox = document.getElementById('resource-link-file-fields');
+            const bodyLabel = document.getElementById('content-body-label');
+
+            if (val === 'evaluasi') {
+                quizBox.classList.remove('hidden');
+            } else {
+                quizBox.classList.add('hidden');
+            }
+
+            if (val === 'materi' || val === 'pendahuluan') {
+                resBox.classList.remove('hidden');
+                bodyLabel.textContent = 'Catatan / Ringkasan Tulisan (Opsional jika sudah ada Link/File)';
+            } else {
+                resBox.classList.add('hidden');
+                bodyLabel.textContent = 'Instruksi Tugas / Topik Diskusi *';
+            }
+        }
+
+        function saveNewSectionContent(e, meetingId) {
+            e.preventDefault();
+            const meeting = meetings.find(m => m.id === meetingId);
+            const sectionKey = document.getElementById('content-section-select').value;
+            const title = document.getElementById('content-item-title').value.trim();
+            const body = document.getElementById('content-item-body').value.trim();
+            const newId = `${sectionKey}-${Date.now()}`;
+
+            const urlEl = document.getElementById('content-item-url');
+            const fileEl = document.getElementById('content-item-file');
+            const externalUrl = urlEl ? urlEl.value.trim() : '';
+            const selectedFile = fileEl && fileEl.files && fileEl.files[0] ? fileEl.files[0] : null;
+
+            if ((sectionKey === 'materi' || sectionKey === 'pendahuluan') && !body && !externalUrl && !selectedFile) {
+                showToast('Isi minimal salah satu: Tautan Link, Unggah File, atau Catatan Tulisan.', 'warning');
+                return;
+            }
+            if (sectionKey !== 'materi' && sectionKey !== 'pendahuluan' && sectionKey !== 'evaluasi' && !body) {
+                showToast('Mohon isi deskripsi atau instruksi item.', 'warning');
+                return;
+            }
+
+            const fileName = selectedFile ? selectedFile.name : '';
+            const fileDataUrl = selectedFile ? URL.createObjectURL(selectedFile) : '';
+            const fileSize = selectedFile ? formatFileSize(selectedFile.size) : (externalUrl ? 'Tautan Online' : 'Catatan Teks');
+            const fileTypeBadge = selectedFile
+                ? selectedFile.name.split('.').pop().toUpperCase()
+                : (externalUrl ? 'LINK' : 'TEKS');
+
+            if (sectionKey === 'pendahuluan') {
+                meeting.pendahuluan.items.push({
+                    id: newId,
+                    title,
+                    subtitle: selectedFile ? `File: ${fileName}` : (externalUrl ? 'Tautan Pengantar' : 'Panduan Pendahuluan'),
+                    content: body,
+                    externalUrl,
+                    fileName,
+                    fileDataUrl,
+                    fileSize
+                });
+            } else if (sectionKey === 'materi') {
+                meeting.materi.items.push({
+                    id: newId,
+                    title,
+                    fileType: fileTypeBadge,
+                    fileSize,
+                    uploadedAt: 'Baru saja ditambahkan',
+                    content: body,
+                    externalUrl,
+                    fileName,
+                    fileDataUrl
+                });
+            } else if (sectionKey === 'aktivitas') {
+                meeting.aktivitas.items.push({ id: newId, title, prompt: body, deadline: 'Batas waktu: Minggu ini' });
+            } else if (sectionKey === 'project') {
+                meeting.project.items.push({ id: newId, title, brief: body, deadline: 'Tenggat: Akhir Semester' });
+            } else if (sectionKey === 'evaluasi') {
+                const qText = document.getElementById('quiz-q-text').value.trim() || body;
+                const opts = [
+                    document.getElementById('quiz-opt-0').value.trim() || 'Jawaban A',
+                    document.getElementById('quiz-opt-1').value.trim() || 'Jawaban B',
+                    document.getElementById('quiz-opt-2').value.trim() || 'Jawaban C',
+                    document.getElementById('quiz-opt-3').value.trim() || 'Jawaban D'
+                ];
+                const ansIdx = parseInt(document.getElementById('quiz-correct-idx').value, 10);
+                meeting.evaluasi.items.push({
+                    id: newId,
+                    title,
+                    duration: '15 Menit',
+                    passingScore: 75,
+                    questions: [{ q: qText, options: opts, answerIndex: ansIdx }]
+                });
+            } else if (sectionKey === 'diskusi') {
+                meeting.diskusi.items.push({ id: newId, title, prompt: body, posts: [] });
+            }
+
+            meeting.expanded = true;
+            closeModal();
+            showToast('Konten baru berhasil ditambahkan ke LMS!', 'success');
+            renderApp();
+        }
+
+        function openEditItemModal(meetingId, sectionKey, itemId) {
+            const meeting = meetings.find(m => m.id === meetingId);
+            const item = meeting[sectionKey].items.find(i => i.id === itemId);
+            const currentBody = item.content || item.prompt || item.brief || '';
+            const isResourceSection = sectionKey === 'materi' || sectionKey === 'pendahuluan';
+
+            document.getElementById('modal-root').innerHTML = `
+                <div class="fixed inset-0 bg-stone-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden">
+                        <div class="bg-stone-900 text-white px-6 py-4 flex items-center justify-between border-b-2 border-amber-400">
+                            <h3 class="text-base font-bold">Edit Konten Item</h3>
+                            <button onclick="closeModal()" class="text-white/80 hover:text-white"><i class="fas fa-times"></i></button>
+                        </div>
+                        <form onsubmit="saveEditedItem(event, '${meetingId}', '${sectionKey}', '${itemId}')" class="p-6 overflow-y-auto space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-stone-700 mb-1">Judul *</label>
+                                <input id="edit-item-title" type="text" value="${item.title}" required
+                                    class="w-full px-3.5 py-2 rounded-xl border border-stone-300 text-sm">
+                            </div>
+                            ${isResourceSection ? `
+                                <div class="p-4 rounded-xl bg-amber-50/70 border border-amber-200 space-y-3">
+                                    <div class="text-xs font-bold text-amber-900 uppercase">Ganti Link atau File Materi</div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-stone-700 mb-1">Tautan / Link Eksternal (Canva, YouTube, Drive, dll.)</label>
+                                        <input id="edit-item-url" type="url" value="${item.externalUrl || ''}" placeholder="https://..."
+                                            class="w-full px-3.5 py-2 rounded-xl border border-stone-300 text-xs sm:text-sm bg-white">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-stone-700 mb-1">
+                                            Ganti / Unggah File Baru ${item.fileName ? `(Saat ini: <strong>${item.fileName}</strong>)` : ''}
+                                        </label>
+                                        <input id="edit-item-file" type="file"
+                                            accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.png,.jpg,.jpeg,.mp4"
+                                            class="w-full text-xs text-stone-600 file:mr-3 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-400 file:text-stone-950 hover:file:bg-amber-500 bg-white border border-stone-300 rounded-xl p-1.5">
+                                        ${item.fileName ? `
+                                            <label class="inline-flex items-center gap-2 mt-2 text-xs text-rose-600 cursor-pointer">
+                                                <input id="edit-remove-file" type="checkbox" class="accent-rose-600">
+                                                <span>Hapus lampiran file yang ada</span>
+                                            </label>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            ` : ''}
+                            ${sectionKey !== 'evaluasi' ? `
+                                <div>
+                                    <label class="block text-xs font-bold text-stone-700 mb-1">
+                                        ${isResourceSection ? 'Catatan / Ringkasan Tulisan (Opsional)' : 'Isi / Deskripsi / Instruksi'}
+                                    </label>
+                                    <textarea id="edit-item-body" rows="4" ${isResourceSection ? '' : 'required'}
+                                        class="w-full px-3.5 py-2 rounded-xl border border-stone-300 text-sm">${currentBody}</textarea>
+                                </div>
+                            ` : ''}
+                            <div class="flex justify-end gap-2 pt-2">
+                                <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl border border-stone-300 text-xs font-semibold">Batal</button>
+                                <button type="submit" class="px-5 py-2 rounded-xl bg-amber-400 text-stone-950 text-xs font-bold">Simpan Perubahan</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        function saveEditedItem(e, meetingId, sectionKey, itemId) {
+            e.preventDefault();
+            const meeting = meetings.find(m => m.id === meetingId);
+            const item = meeting[sectionKey].items.find(i => i.id === itemId);
+            const isResourceSection = sectionKey === 'materi' || sectionKey === 'pendahuluan';
+
+            const newTitle = document.getElementById('edit-item-title').value.trim();
+            const bodyEl = document.getElementById('edit-item-body');
+            const newVal = bodyEl ? bodyEl.value.trim() : '';
+
+            if (isResourceSection) {
+                const newUrl = document.getElementById('edit-item-url').value.trim();
+                const fileInput = document.getElementById('edit-item-file');
+                const newFile = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+                const removeFile = document.getElementById('edit-remove-file')?.checked || false;
+
+                if (removeFile) {
+                    item.fileName = '';
+                    item.fileDataUrl = '';
+                }
+                if (newFile) {
+                    item.fileName = newFile.name;
+                    item.fileDataUrl = URL.createObjectURL(newFile);
+                    item.fileSize = formatFileSize(newFile.size);
+                    item.fileType = newFile.name.split('.').pop().toUpperCase();
+                }
+                item.externalUrl = newUrl;
+
+                if (!newVal && !item.externalUrl && !item.fileName) {
+                    showToast('Isi minimal salah satu: Tautan Link, File Materi, atau Catatan Tulisan.', 'warning');
+                    return;
+                }
+
+                if (!item.fileName) {
+                    item.fileSize = item.externalUrl ? 'Tautan Online' : 'Catatan Teks';
+                    item.fileType = item.externalUrl ? 'LINK' : 'TEKS';
+                }
+                item.uploadedAt = 'Diperbarui oleh Guru';
+            }
+
+            item.title = newTitle;
+            if (bodyEl) {
+                if (sectionKey === 'pendahuluan' || sectionKey === 'materi') item.content = newVal;
+                if (sectionKey === 'aktivitas' || sectionKey === 'diskusi') item.prompt = newVal;
+                if (sectionKey === 'project') item.brief = newVal;
+            }
+
+            closeModal();
+            showToast('Perubahan item berhasil disimpan!', 'success');
+            renderApp();
+        }
+
+        /**
+         * ============================================================================
+         * 9. DASHBOARD REKAP & INTEGRASI GOOGLE SPREADSHEET
+         * ============================================================================
+         */
+        function renderSpreadsheetTab() {
+            const isGuru = currentUser.role === 'guru';
+
+            // Filter data: Siswa hanya melihat rekap miliknya sendiri, Guru melihat semua siswa
+            const visibleRecords = studentRecords.filter(rec => {
+                const roleMatch = isGuru ? true : rec.studentId === currentUser.idNumber;
+                const catMatch = filterCategory === 'ALL' ? true : rec.category === filterCategory;
+                return roleMatch && catMatch;
+            });
+
+            return `
+                <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+                    <!-- Panel Integrasi Google Spreadsheet -->
+                    <div class="bg-white rounded-2xl border border-stone-200 p-5 sm:p-7 shadow-2xs relative overflow-hidden">
+                        <div class="absolute top-0 left-0 right-0 h-1 bg-amber-400"></div>
+                        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-stone-100">
+                            <div class="flex items-start gap-3.5">
+                                <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                                    <i class="fas fa-file-excel text-2xl"></i>
+                                </div>
+                                <div>
+                                    <h1 class="text-lg sm:text-xl font-extrabold text-stone-900">
+                                        ${isGuru ? 'Dashboard Guru: Rekap Aktivitas & Google Spreadsheet' : 'Rekap Aktivitas & Hasil Evaluasi Saya'}
+                                    </h1>
+                                    <p class="text-xs sm:text-sm text-stone-600 mt-0.5">
+                                        Seluruh aktivitas belajar PLTS, pengumpulan project, diskusi, dan nilai evaluasi siswa otomatis tersimpan dan terhubung ke Google Sheets.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-wrap items-center gap-2">
+                                ${isGuru ? `
+                                    <button onclick="openAppsScriptGuideModal()"
+                                        class="px-3.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-semibold flex items-center gap-1.5 transition">
+                                        <i class="fas fa-code text-amber-600"></i> Kode Google Apps Script
+                                    </button>
+                                ` : ''}
+                                <button onclick="exportRecordsToCSV()"
+                                    class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs transition">
+                                    <i class="fas fa-download"></i> Unduh CSV (Google Sheets)
+                                </button>
+                            </div>
+                        </div>
+
+                        ${isGuru ? `
+                            <!-- Form URL Webhook Google Apps Script -->
+                            <form onsubmit="saveSpreadsheetWebhook(event)" class="mt-5 grid grid-cols-1 lg:grid-cols-12 gap-3 items-end">
+                                <div class="lg:col-span-8">
+                                    <label class="block text-xs font-bold text-stone-700 mb-1">
+                                        URL Web App Google Apps Script (Sinkronisasi Cloud Real-time ke Google Sheets)
+                                    </label>
+                                    <input id="sheet-webhook-input" type="url" value="${sheetConfig.webhookUrl}"
+                                        placeholder="https://script.google.com/macros/s/AKfycb.../exec"
+                                        class="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 focus:border-amber-500 outline-none text-xs sm:text-sm">
+                                </div>
+                                <div class="lg:col-span-4 flex gap-2">
+                                    <button type="submit" class="flex-1 py-2.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-500 text-stone-950 text-xs font-bold transition">
+                                        <i class="fas fa-link mr-1"></i> Hubungkan URL
+                                    </button>
+                                    <button type="button" onclick="testSpreadsheetSync()" class="py-2.5 px-3.5 rounded-xl border border-stone-300 hover:bg-stone-50 text-stone-700 text-xs font-semibold transition">
+                                        Tes Kirim
+                                    </button>
+                                </div>
+                            </form>
+                        ` : ''}
+                    </div>
+
+                    <!-- Tabel Live Rekap Aktivitas & Hasil Evaluasi -->
+                    <div class="bg-white rounded-2xl border border-stone-200 shadow-2xs overflow-hidden">
+                        <div class="px-5 py-4 border-b border-stone-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-stone-50/70">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm font-bold text-stone-800">Log Data Terkini (${visibleRecords.length} Baris)</span>
+                                <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold">
+                                    Auto-Sync Aktif
+                                </span>
+                            </div>
+
+                            <!-- Filter Kategori -->
+                            <div class="flex items-center gap-1.5 overflow-x-auto text-xs">
+                                ${['ALL', 'Materi', 'Aktivitas', 'Project', 'Evaluasi', 'Diskusi'].map(cat => `
+                                    <button onclick="setRecordFilter('${cat}')"
+                                        class="px-3 py-1 rounded-lg font-semibold transition ${filterCategory === cat ? 'bg-amber-400 text-stone-950' : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-100'}">
+                                        ${cat === 'ALL' ? 'Semua' : cat}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-stone-100/80 text-stone-600 text-[11px] uppercase tracking-wider border-b border-stone-200">
+                                        <th class="py-3 px-4 font-bold">Waktu</th>
+                                        <th class="py-3 px-4 font-bold">Nama Siswa</th>
+                                        <th class="py-3 px-4 font-bold">Pertemuan</th>
+                                        <th class="py-3 px-4 font-bold">Kategori</th>
+                                        <th class="py-3 px-4 font-bold">Aktivitas / Evaluasi</th>
+                                        <th class="py-3 px-4 font-bold">Hasil / Skor</th>
+                                        <th class="py-3 px-4 font-bold">Status Sheets</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-stone-200 text-xs sm:text-sm">
+                                    ${visibleRecords.length === 0 ? `
+                                        <tr>
+                                            <td colspan="7" class="py-8 text-center text-stone-400 text-sm">
+                                                Belum ada data aktivitas atau evaluasi untuk filter ini.
+                                            </td>
+                                        </tr>
+                                    ` : visibleRecords.map(r => `
+                                        <tr class="hover:bg-amber-50/30 transition">
+                                            <td class="py-3 px-4 text-xs text-stone-500 whitespace-nowrap">${r.timestamp}</td>
+                                            <td class="py-3 px-4">
+                                                <div class="font-semibold text-stone-800">${r.studentName}</div>
+                                                <div class="text-[11px] text-stone-500">${r.studentId}</div>
+                                            </td>
+                                            <td class="py-3 px-4 text-xs font-medium text-stone-700 whitespace-nowrap">${r.meetingTitle}</td>
+                                            <td class="py-3 px-4">
+                                                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-900">
+                                                    ${r.category}
+                                                </span>
+                                            </td>
+                                            <td class="py-3 px-4">
+                                                <div class="font-medium text-stone-800">${r.itemTitle}</div>
+                                                <div class="text-xs text-stone-500 line-clamp-1">${r.detail}</div>
+                                            </td>
+                                            <td class="py-3 px-4 font-bold text-emerald-700 whitespace-nowrap">${r.scoreOrStatus}</td>
+                                            <td class="py-3 px-4 whitespace-nowrap">
+                                                <span class="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                                                    <i class="fas fa-check-circle"></i> Tersimpan
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </main>
+            `;
+        }
+
+        function setRecordFilter(cat) {
+            filterCategory = cat;
+            renderApp();
+        }
+
+        function saveSpreadsheetWebhook(e) {
+            e.preventDefault();
+            sheetConfig.webhookUrl = document.getElementById('sheet-webhook-input').value.trim();
+            showToast('URL Google Apps Script berhasil disimpan!', 'success');
+            renderApp();
+        }
+
+        function testSpreadsheetSync() {
+            recordAndSyncToGoogleSheets({
+                meetingTitle: 'Tes Koneksi',
+                category: 'Evaluasi',
+                itemTitle: 'Uji Sinkronisasi Google Spreadsheet',
+                scoreOrStatus: 'Berhasil (100)',
+                detail: 'Pengujian pengiriman baris data dari E-Ganesha LMS ke Google Sheets.'
+            });
+        }
+
+        function exportRecordsToCSV() {
+            const headers = ['ID_Rekap', 'Waktu', 'Nama_Siswa', 'NIS_NIM', 'Pertemuan', 'Kategori', 'Judul_Aktivitas', 'Hasil_Skor', 'Detail_Jawaban'];
+            const rows = studentRecords.map(r => [
+                r.id,
+                r.timestamp,
+                `"${r.studentName}"`,
+                `"${r.studentId}"`,
+                `"${r.meetingTitle}"`,
+                r.category,
+                `"${r.itemTitle.replace(/"/g, '""')}"`,
+                `"${r.scoreOrStatus}"`,
+                `"${r.detail.replace(/"/g, '""')}"`
+            ]);
+
+            const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', `Rekap_LMS_EGanesha_${new Date().toISOString().slice(0, 10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('File CSV siap dibuka langsung di Google Spreadsheet!', 'success');
+        }
+
+        function openAppsScriptGuideModal() {
+            const scriptCode = `function doPost(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var data = JSON.parse(e.postData.contents);
+  
+  // Buat header otomatis jika baris pertama masih kosong
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(["ID", "Waktu", "Nama Siswa", "NIS/NIM", "Pertemuan", "Kategori", "Judul Item", "Hasil / Skor", "Detail"]);
+  }
+  
+  sheet.appendRow([
+    data.id,
+    data.timestamp,
+    data.studentName,
+    data.studentId,
+    data.meetingTitle,
+    data.category,
+    data.itemTitle,
+    data.scoreOrStatus,
+    data.detail
+  ]);
+  
+  return ContentService.createTextOutput(JSON.stringify({ "status": "success" }))
+    .setMimeType(ContentService.MimeType.JSON);
+}`;
+
+            document.getElementById('modal-root').innerHTML = `
+                <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+                        <div class="bg-emerald-700 text-white px-6 py-4 flex items-center justify-between">
+                            <h3 class="text-base font-bold">Panduan Menghubungkan Google Spreadsheet Real-Time</h3>
+                            <button onclick="closeModal()" class="text-white/80 hover:text-white"><i class="fas fa-times"></i></button>
+                        </div>
+
+                        <div class="p-6 overflow-y-auto space-y-4 text-xs sm:text-sm text-slate-700">
+                            <ol class="list-decimal list-inside space-y-1.5 font-medium">
+                                <li>Buka <strong>Google Sheets</strong> baru, lalu klik menu <strong>Ekstensi (Extensions) &rarr; Apps Script</strong>.</li>
+                                <li>Salin kode di bawah ini, tempel ke editor Apps Script, lalu klik <strong>Terapkan (Deploy) &rarr; Deployment Baru</strong>.</li>
+                                <li>Pilih jenis <strong>Aplikasi Web (Web App)</strong>, atur akses menjadi <strong>Siapa saja (Anyone)</strong>, lalu salin URL Web App ke kolom di Dashboard Guru.</li>
+                            </ol>
+
+                            <div class="relative">
+                                <button type="button" onclick="copyScriptCode()"
+                                    class="absolute top-2.5 right-2.5 px-3 py-1 rounded-lg bg-slate-800 text-white text-xs font-semibold hover:bg-slate-700">
+                                    <i class="fas fa-copy mr-1"></i> Salin Kode
+                                </button>
+                                <pre id="apps-script-snippet" class="bg-slate-900 text-emerald-300 p-4 rounded-xl text-xs overflow-x-auto leading-relaxed">${scriptCode}</pre>
+                            </div>
+                        </div>
+
+                        <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex justify-end">
+                            <button onclick="closeModal()" class="px-5 py-2 rounded-xl bg-slate-800 text-white text-xs font-semibold">Tutup</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function copyScriptCode() {
+            const code = document.getElementById('apps-script-snippet').innerText;
+            copyTextSafe(code);
+        }
+
+        /**
+         * ============================================================================
+         * 10. RENDER UTAMA APLIKASI
+         * ============================================================================
+         */
+        function renderApp() {
+            const root = document.getElementById('app');
+
+            if (!currentUser) {
+                root.innerHTML = renderLoginScreen();
+                return;
+            }
+
+            let mainContent = '';
+            if (activeTab === 'course') {
+                mainContent = renderCourseHome();
+            } else if (activeTab === 'forum') {
+                mainContent = renderForumTab();
+            } else if (activeTab === 'spreadsheet') {
+                mainContent = renderSpreadsheetTab();
+            }
+
+            root.innerHTML = `
+                ${renderNavbar()}
+                ${mainContent}
+                <footer class="bg-white border-t border-stone-200 py-4 px-6 text-center text-xs text-stone-500 mt-auto">
+                    &copy; 2026 LMS PLTS · Energi Baru Terbarukan (Kelas 39 · Semester 5) · Pembuat: I Kadek Satriantara (2415061003)
+                </footer>
+            `;
+        }
+
+        // Inisialisasi aplikasi saat halaman dimuat
+        window.onload = function () {
+            renderApp();
+        };
+    </script>
+</body>
+</html>
