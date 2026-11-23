@@ -78,7 +78,25 @@
                 role: 'guru',
                 idNumber: 'NIM/NIP. 2415061003',
                 classOrDept: 'Pengampu Mata Pelajaran · Kelas 39'
-            }
+            },
+            {
+    username: 'guru2',              // Username untuk login (tanpa spasi)
+    password: '223',       // Password akun
+    name: 'Dr. Made Suryawan',      // Nama lengkap yang tampil di LMS
+    role: 'guru',                   // Wajib 'guru' agar punya akses edit LMS & lihat rekap
+    idNumber: '198504122010',       // NIP / ID
+    classOrDept: 'Guru Pengampu PLTS'
+  },
+
+  // CONTOH MENAMBAH AKUN SISWA BARU:
+  {
+    username: 'budi24',             // Username login siswa
+    password: '123',                // Password siswa
+    name: 'I Putu Budi Santoso',    // Nama lengkap (akan tercatat otomatis di Google Sheets)
+    role: 'siswa',                  // Wajib 'siswa' agar masuk ke tampilan belajar siswa
+    idNumber: '2415061015',         // NIM / NIS siswa
+    classOrDept: 'Kelas 39 · Semester 5'
+  }
         ];
 
         // Konfigurasi Google Spreadsheet (Apps Script Web App URL)
